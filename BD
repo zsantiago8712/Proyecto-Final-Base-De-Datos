@@ -1,0 +1,146 @@
+
+//Creacion de tablas
+
+CREATE TABLE Users (
+    UserID int AUTO_INCREMENT PRIMARY KEY,
+    Nombre varchar(255) NOT NULL,
+    Apellidos varchar(255) NOT NULL,
+    Carrera varchar(50),
+    Correo varchar(100) NOT NULL,
+    Semestre int,
+    TipoUser boolean NOT NULL,
+    Password varchar(50) NOT NULL
+
+);
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+// Usuarios
+CREATE TABLE Usuarios(
+    Id_cuenta int AUTO_INCREMENT PRIMARY KEY, 
+    User_type boolean not null,
+    Nombre varchar(50) not null,
+    Carrera varchar(80),
+    Semestre int, 
+    Correo varchar(80) not null,
+    Ap_pat varchar(50) not null, 
+    Ap_mat varchar(50), 
+    Password varchar(50) not null, 
+    F_nacimiento date not null
+);
+
+
+// Catalogo
+CREATE TABLE Catalogo(
+    Isbn int AUTO_INCREMENT PRIMARY KEY,  
+    Nombre_lb varchar(80) not null, 
+    Editorial varchar(50),  
+    Num_ejemplares int not null
+);
+
+
+// Sistema de prestamos
+CREATE TABLE Sistema_prestamos(
+    Id_prestamo int AUTO_INCREMENT PRIMARY KEY, 
+    Id_cuenta int not null,
+    Isbn int not null, 
+    FOREIGN KEY (Id_cuenta) REFERENCES Usuarios(Id_cuenta),
+    FOREIGN KEY (Isbn) REFERENCES Catalogo(Isbn),
+    Fecha_solicitud date not null,
+    Fecha_regreso date not null    
+);
+
+
+
+
+//Inserccion
+    // Usuarios
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(TRUE, 'Jaime', 'Cojab', 'Mizrahi', 'Ingeneria Telecomunaciones y Computacion', 5, 'jaime@yahoo.com', AES_ENCRYPT('COJAB', 'AES'), '1999/10/20');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(TRUE, 'Carlos', 'Salgado', 'Jimenez', 'Psicologia', 5, 'carlos@yahoo.com', AES_ENCRYPT('SALGADO', 'AES'), '2000/10/23');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(False, 'Sebastian', 'Ramiez', 'Chavez', 'Medicina', 5, 'sebastian@yahoo.com', AES_ENCRYPT('RAMIREZ', 'AES'), '1982/09/15');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(False, 'Alex', 'Bejar', 'Martinez', 'Finanzas', 5, 'alex@yahoo.com', AES_ENCRYPT('RAMIREZ', 'AES'), '1985/04/02');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(False, 'Antonio', 'Flores', 'Slim', 'Ingeneria Mecanica', 5, 'antonio@yahoo.com', AES_ENCRYPT('FLORES', 'AES'), '1975/12/29');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(False, 'Rosa', 'Gomez', 'Bolaños', 'Medicina', 5, 'rosa@yahoo.com', AES_ENCRYPT('GOMEZ', 'AES'), '1997/09/11');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(False, 'David', 'Hernandez', 'Montoya', 'Psicologia', 5, 'david@yahoo.com', AES_ENCRYPT('HERNANDEZ', 'AES'), '1972/02/25');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(False, 'Karla', 'Reyes', 'Martinez', 'Filosofia', 5, 'karla@yahoo.com', AES_ENCRYPT('REYES', 'AES'), '1990/08/04');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+    VALUES(False, 'Felicia', 'Ordones', 'Cabrera', 'Literatura', 5, 'felicia@yahoo.com', AES_ENCRYPT('ORDONES', 'AES'), '1975/07/05');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+VALUES(False, 'Sandra', 'Rosales', 'Cobos', 'Ingeneria Quimica', 5, 'sandra@yahoo.com', AES_ENCRYPT('ROSALES', 'AES'), '1990/03/26');
+    
+    
+    // Catalogo
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('It','LibrosLib',4);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('La Catedral','Libros4',2);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('Armado','Pinguino',8);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('El Capitan','NobelasYmas',6);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('El Jardin','CatedralLibros',10);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('Presidentes','LibrosLib',6);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('Hernesto','Libros4',7);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('El Mar Rojo','Pinguino',15);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('La Trajinera','NobelasYmas',6);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('Nobles','LibrosLib',12);
+
+
+    // Prestamos
+INSERT INTO Sistema_prestamos(Id_cuenta, Isbn, Fecha_solicitud, Fecha_regreso) VALUES(1, 1, now(), DATE_ADD(now(), INTERVAL 8 DAY));
+
+
+// Selects 
+
+    //Valida Login
+SELECT Id_cuenta, User_type, Nombre,Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Correo='jaime@yahoo.com' AND (AES_DECRYPT(Password, 'AES')) = 'COJAB';
+
+    // Obtener Todos los usuarios
+SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios;
+
+// Obtener Usuario con el nombre del Libros4
+SELECT UserID, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento,(AES_DECRYPT(Password, 'AES')) AS Password 
+    FROM Usuarios AS USR, Sistema_prestamos AS SP,  Catalogo AS C  WHERE C.Nombre_lb = 'It' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;
+
+
+
+
+//UPDATE 
+UPDATE Users SET Correo="mau@icloud.com" WHERE UserID=3;
+
+SELECT UserID, Nombre, (AES_DECRYPT(Password, 'AES')) AS Password_Recuperado FROM Users;
+SELECT *, (AES_DECRYPT(Password, 'AES')) AS Password_Recuperado FROM Usuarios;
+
+//Agregar columna
+ALTER TABLE Users ADD COLUMN password varchar(50) NOT NULL;
+
+//Fuinciones
+
+DELIMITER $$
+CREATE FUNCTION loggin(correo_table varchar(100), correo_login varchar(100), password_table varchar(16), password_login varchar(16))
+RETURNS boolean
+
+BEGIN
+    DECLARE user_found boolean;
+
+    IF correo_login = correo_login THEN
+        IF password_table = password_login THEN
+            SET user_found = TRUE;
+        ELSE
+            SET user_found = FALSE;
+        END IF;
+    ELSE
+        SET user_found = FALSE;
+    END IF;
+
+    RETURN user_found;
+END$$
+
+DELIMITER;
+
+
