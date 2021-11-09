@@ -1,83 +1,124 @@
 #include "../libs/Memory.h"
 
 
-static ERROR_CODE checkMatrixStringAlloc(char ***matrixString);
-static ERROR_CODE checkListStringAlloc(char **listStirng);
-static ERROR_CODE checkColumnAlloc(char* columnData);
+#include "../libs/Memory.h"
 
-char*** createMatrixString(char*** matrixString, uint16_t rows, uint16_t columns){
+static ERROR_CODE checkMatrixStringCR(char ***matrixString);
+static ERROR_CODE checkListStringCR(char **listStirng);
+static ERROR_CODE checkColumnData(char* columnData);
+
+
+
+
+char*** createMatrixString(char*** matrixString, uint8_t rows, uint8_t columns){
     
     matrixString = calloc(rows, sizeof(char**));
-    checkMatrixStringAlloc(matrixString);
-    for(size_t i = 0; i < columns; i++){
+    checkMatrixStringCR(matrixString);
+
+    for(uint8_t i = 0; i < rows; i++){
         matrixString[i] = calloc(columns, sizeof(matrixString[i]));
-        checkListStringAlloc(matrixString[i]);
+        checkListStringCR(matrixString[i]);
     }
 
-    return matrixString;
+   return matrixString;
 }
 
 
-char*** freeMatrixString(char*** matrixString, uint16_t rows){
 
+
+char** createListString(char** listStirng, uint8_t columns){
+    
+    listStirng = calloc(columns, sizeof(char*));
+    checkListStringCR(listStirng);
+
+
+    return listStirng;
+} 
+
+
+
+
+char*** freeMatrixString(char*** matrixString, uint8_t rows){
+    
     for(int i = 0; i < rows; i++){
+
         free(matrixString[i]);
         matrixString[i] = NULL;
     }
 
     free(matrixString);
     matrixString = NULL;
-
-
+    
     return matrixString;
 }
 
 
-char** setMoreColumns(char** listString, size_t columns){
-    
-    listString = realloc(listString, sizeof(char*) * columns * 2);
-    checkListStringAlloc(listString);
 
-    return listString;
+
+char** freeListString(char** listStirng){
+    
+    free(listStirng);
+    listStirng = NULL;
+
+    return NULL;
+}
+
+char* freeString(char* string){
+
+    free(string);
+    string = NULL;
+
+    return string;
 }
 
 
-
-char*** setMoreRows(char*** matrixString, size_t rows, size_t columns){
+char*** setMoreRows(char*** matrixString, uint8_t rows, uint8_t columns){
 
 	char*** tempPtr;
 	tempPtr = realloc(matrixString, sizeof(matrixString) * rows * 2);
-    checkMatrixStringAlloc(tempPtr);
+    checkMatrixStringCR(tempPtr);
 
-	for(size_t i = 0; i < rows * 2; i++){
+	for(uint8_t i = 0; i < rows * 2; i++){
 		tempPtr[rows + i] = createListString(tempPtr[rows + i], columns);
-		checkListStringAlloc(tempPtr[rows + i]);
+		checkListStringCR(tempPtr[rows + i]);
 	}
 
 	matrixString = tempPtr;
 
     return matrixString;
+    
 }
 
-char* reallocStringSize(char* columnData, char* word){
+
+
+
+char** setMoreColumns(char** listString, uint8_t columns){
     
-    columnData = realloc(columnData, sizeof(char) * strlen(word));
-    checkColumnAlloc(columnData);
+    listString = realloc(listString, sizeof(char*) * columns * 2);
+    checkListStringCR(listString);
+
+    return listString;
+}
+
+
+char* setSizeColumn(char* columnData, char* word){
+    
+    columnData = calloc(strlen(word), sizeof(char));
+    checkColumnData(columnData);
     
     return columnData;
 }
 
 
-char** createListString(char** listStirng, size_t columns){
+char* setResizeColumn(char* columnData, char* word){
     
-    listStirng = calloc(columns, sizeof(char*));
-    checkListStringAlloc(listStirng);
-
-
-    return listStirng;
+    columnData = realloc(columnData, sizeof(char) * strlen(word) + 1);
+    checkColumnData(columnData);
+    
+    return columnData;
 }
 
-static ERROR_CODE checkMatrixStringAlloc(char ***matrixString){
+static ERROR_CODE checkMatrixStringCR(char ***matrixString){
 
     if(matrixString == NULL){
         perror("ERROR::");
@@ -88,7 +129,9 @@ static ERROR_CODE checkMatrixStringAlloc(char ***matrixString){
 }
 
 
-static ERROR_CODE checkListStringAlloc(char **listStirng){
+
+
+static ERROR_CODE checkListStringCR(char **listStirng){
 
     if(listStirng == NULL){
         perror("ERROR::");
@@ -98,7 +141,8 @@ static ERROR_CODE checkListStringAlloc(char **listStirng){
 }
 
 
-static ERROR_CODE checkColumnAlloc(char* columnData){
+
+static ERROR_CODE checkColumnData(char* columnData){
     
     if(columnData == NULL){
         perror("ERROR::");

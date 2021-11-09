@@ -104,8 +104,8 @@ SELECT Id_cuenta, User_type, Nombre,Ap_pat, Ap_mat, Carrera, Semestre, Correo, F
 SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios;
 
 // Obtener Usuario con el nombre del Libros4
-SELECT UserID, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento,(AES_DECRYPT(Password, 'AES')) AS Password 
-    FROM Usuarios AS USR, Sistema_prestamos AS SP,  Catalogo AS C  WHERE C.Nombre_lb = 'It' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;
+SELECT USR.Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento,(AES_DECRYPT(Password, 'AES')) AS Password 
+    FROM Usuarios AS USR, Sistema_prestamos AS SP, Catalogo AS C  WHERE C.Nombre_lb = 'It' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;
 
 
 

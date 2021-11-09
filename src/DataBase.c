@@ -75,8 +75,8 @@ static MYSQL* connectionDataBase(DataBase dataBase){
 ERROR_CODE login(DataBase dataBase, User user){
 
     MYSQL_RES* res;
-    MYSQL_ROW* row;
-    uint8_t numRows = 0, numColumns = 0;
+    MYSQL_ROW row;
+    
 
     char query[BUFSIZ];
     createLogginQueery(user, query);
@@ -84,9 +84,7 @@ ERROR_CODE login(DataBase dataBase, User user){
     sendQuery(dataBase, query);
     
     res = mysql_use_result(dataBase->connection);
-    /* output table name */
-    printf("MySQL Tables in mysql database:\n");
-
+    
    
     row = mysql_fetch_row(res);
     if(row != NULL){
@@ -127,132 +125,135 @@ ERROR_CODE login(DataBase dataBase, User user){
     return ERROR_OK;
 }
 
+
 ERROR_CODE getAllUsers(DataBase dataBase, Data data){
 
     MYSQL_RES* res;
-    MYSQL_ROW* row = NULL;
+    MYSQL_ROW row;
     uint8_t numRows = 0, numColumns = 0, indexRows = 0;
+    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios;";
 
-    if(getUsersByName(dataBase, data) == ERROR_OK)
-        res = mysql_use_result(dataBase->connection);
-
-    else if(getUsersById(dataBase, data) == ERROR_OK)
-        res = mysql_use_result(dataBase->connection);
-
-    else if(getUserByCarrera(dataBase, data) == ERROR_OK)
-        res = mysql_use_result(dataBase->connection);
-
-    else if(getUserByNombreLibro(dataBase, data) == ERROR_OK)
-        res  = mysql_use_result(dataBase->connection);
     
-    if(res == NULL){
-        mysql_free_result(res);
-        return EMPTY_SET;
-    }
-
-
+    sendQuery(dataBase, query);
+    
+    res = mysql_use_result(dataBase->connection);
+    
     while ((row = mysql_fetch_row(res)) != NULL){
         
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
-
-        if(numRows > getNumRows(data))
-            setNumRows(data, numRows);
-
-        setbdData(data, row, indexRows, numColumns);
-
         printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
+
+        if(numRows >= getNumRows(data))
+            setNumRows(data, numRows);
+       
+        setbdData(data, row, indexRows, 10);
+        
         indexRows++;        
     }
 
+    setDataRows(data, numRows);
     mysql_free_result(res);
-
+    
     return ERROR_OK;
 }
 
 
 ERROR_CODE searchUser(DataBase dataBase, Data data){
 
-    MYSQL_RES* res;
-    MYSQL_ROW* row = NULL;
-    uint8_t numRows = 0, numColumns = 0, indexRows = 0;
 
-
-    
-    if(res == NULL){
-        mysql_free_result(res);
-        return EMPTY_SET;
+    if(getUsersByName(dataBase, data) == ERROR_OK){
+        puts("FOUND BY NOMBRE");
+        return ERROR_OK;
     }
-
-
-    while ((row = mysql_fetch_row(res)) != NULL){
+    else if(getUsersById(dataBase, data) == ERROR_OK){
+        puts("FOUND BY ID");
+        return ERROR_OK;
+    }
+    else if(getUserByCarrera(dataBase, data) == ERROR_OK){
+        puts("FOUND BY CARRERA");
+        return ERROR_OK;
+    }
+    else if(getUserByNombreLibro(dataBase, data) == ERROR_OK){
+        puts("FOUND BY NOMBRE LIBRO");
+        return ERROR_OK;
+    }
         
-        numRows = mysql_num_rows(res);
-        numColumns = mysql_num_fields(res);
-
-        if(numRows > getNumRows(data))
-            setNumRows(data, numRows);
-
-        setbdData(data, row, indexRows, numColumns);
-
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
-        indexRows++;        
-    }
-
-    mysql_free_result(res);
-
-    return ERROR_OK;
+    return EMPTY_SET;   
 }
 
 static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
 
     MYSQL_RES* res;
-    MYSQL_ROW* row;
-    uint8_t numRows = 0, numColumns = 0, indexRows = 0;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
     char query[BUFSIZ];
 
     createSearchUserByNameQuery(data, query);
     
-    if(sendQuery(dataBase, query) == EMPTY_SET)
-        return EMPTY_SET;
+    
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
 
 
     res = mysql_use_result(dataBase->connection);
+
     while ((row = mysql_fetch_row(res)) != NULL){
         
+        if(!isData){
+            clearData(data);
+            isData = TRUE;
+        }
+
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
 
+
         if(numRows > getNumRows(data))
             setNumRows(data, numRows);
+            
 
-        setbdData(data, row, indexRows, numColumns);
+        setbdData(data, row, indexRows, 10);
 
         printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
-        indexRows++;        
+        indexRows++; 
     }
 
+    setDataRows(data, numRows);
     mysql_free_result(res);
+    if(!isData)
+        return EMPTY_SET;
+
+    
     return ERROR_OK;
 }
 
 
 static ERROR_CODE getUsersById(DataBase dataBase, Data data){
 
-    MYSQL_RES* res;
-    MYSQL_ROW* row;
-    uint8_t numRows = 0, numColumns = 0, indexRows = 0;
+    MYSQL_RES* res = NULL;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
     char query[BUFSIZ];
 
     createSearchUserByIdQuery(data, query);
     
-    if(sendQuery(dataBase, query) == EMPTY_SET)
-        return EMPTY_SET;
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
 
-
+    puts("SEARCH BY ID");
+    
+    
     res = mysql_use_result(dataBase->connection);
+
+
     while ((row = mysql_fetch_row(res)) != NULL){
         
+        if(!isData){
+            clearData(data);
+            isData = TRUE;
+        } 
+
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
 
@@ -265,7 +266,12 @@ static ERROR_CODE getUsersById(DataBase dataBase, Data data){
         indexRows++;        
     }
 
+    setDataRows(data, numRows);
     mysql_free_result(res);
+    if(!isData)
+        return EMPTY_SET;
+
+    
     return ERROR_OK;
 }
 
@@ -273,19 +279,25 @@ static ERROR_CODE getUsersById(DataBase dataBase, Data data){
 static ERROR_CODE getUserByCarrera(DataBase dataBase, Data data){
 
     MYSQL_RES* res;
-    MYSQL_ROW* row;
-    uint8_t numRows = 0, numColumns = 0, indexRows = 0;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
     char query[BUFSIZ];
 
     createSearchUserByCarreraQuery(data, query);
     
-    if(sendQuery(dataBase, query) == EMPTY_SET)
-        return EMPTY_SET;
-
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
 
     res = mysql_use_result(dataBase->connection);
+   
+
     while ((row = mysql_fetch_row(res)) != NULL){
         
+         if(!isData){
+            clearData(data);
+            isData = TRUE;
+        }
+           
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
 
@@ -293,37 +305,47 @@ static ERROR_CODE getUserByCarrera(DataBase dataBase, Data data){
             setNumRows(data, numRows);
 
         setbdData(data, row, indexRows, numColumns);
-
         printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++;        
     }
 
+    setDataRows(data, numRows);
     mysql_free_result(res);
+
+    if(!isData)
+        return EMPTY_SET;
+
+    
     return ERROR_OK;
 }
 
 static ERROR_CODE getUserByNombreLibro(DataBase dataBase, Data data){
 
+    
     MYSQL_RES* res = NULL;
-    MYSQL_ROW* row;
-    uint8_t numRows = 0, numColumns = 0, indexRows = 0;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
     char query[BUFSIZ];
 
     createSearchUserByNombreLibro(data, query);
     
-    if(sendQuery(dataBase, query) == EMPTY_SET)
-        return EMPTY_SET;
+    puts(query);
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
 
+    
+    
 
     res = mysql_use_result(dataBase->connection);
-    if(!res){
-        mysql_free_result(res);
-        return EMPTY_SET;
-    }
 
 
     while ((row = mysql_fetch_row(res)) != NULL){
         
+        if(!isData){
+            clearData(data);
+            isData = TRUE;
+        }
+
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
 
@@ -336,7 +358,11 @@ static ERROR_CODE getUserByNombreLibro(DataBase dataBase, Data data){
         indexRows++;        
     }
 
+    setDataRows(data, numRows);
     mysql_free_result(res);
+    if(!isData)
+        return EMPTY_SET;
+
     return ERROR_OK;
 }
 
@@ -358,33 +384,37 @@ static char* createLogginQueery(User user, char* queryToUse){
 
 static char* createSearchUserByNameQuery(Data data, char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT Id_cuenta, Nombre, Nombre,Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento FROM Usuarios WHERE Nombre = '";
+    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Nombre = '";
     strcat(query, getArgumentSearch(data));
     strcat(query, "';");
 
     strcpy(queryToUse, query);
+    puts(queryToUse);
     return queryToUse;
 }
 
 
 static char* createSearchUserByIdQuery(Data data , char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento FROM Usuarios WHERE UserID = ";
+    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Id_cuenta = ";
     strcat(query, getArgumentSearch(data));
     strcat(query, ";");
     
+    
     strcpy(queryToUse, query);
+    puts(queryToUse);
     return queryToUse;
 }
 
 
 static char* createSearchUserByCarreraQuery(Data data , char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento FROM Usuarios WHERE Carrera = '";
+    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Carrera = '";
     strcat(query, getArgumentSearch(data));
     strcat(query, "';");
     
     strcpy(queryToUse, query);
+    puts(queryToUse);
     return queryToUse;
 }
 
@@ -392,18 +422,21 @@ static char* createSearchUserByCarreraQuery(Data data , char* queryToUse){
 
 static char* createSearchUserByNombreLibro(Data data , char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios AS USR, Sistema_prestamos AS SP,  Catalogo AS C  WHERE C.Nombre_lb = '";
+    puts("SEARCH BY NOMBRE LIB22");
+    char query[BUFSIZ] = "SELECT USR.Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios AS USR, Sistema_prestamos AS SP,  Catalogo AS C  WHERE C.Nombre_lb = '";
     strcat(query, getArgumentSearch(data));
-    strcat(query, "' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;';");
+    strcat(query, "' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;");
     
     strcpy(queryToUse, query);
     return queryToUse;
 }
+
+
 static ERROR_CODE sendQuery(DataBase dataBase, const char* query){
 
     if(mysql_query(dataBase->connection, query)){
-        fprintf(stderr, "ERROR: %s %d %d-->%d", __FILE__, __LINE__, USER_NOT_FOUND, mysql_errno(dataBase->connection));
-        return EMPTY_SET; 
+        fprintf(stderr, "ERROR: %s %d %d --> %d\n", __FILE__, __LINE__, USER_NOT_FOUND, mysql_errno(dataBase->connection));
+        return ERROR_QUERY; 
     }
 
     return ERROR_OK;

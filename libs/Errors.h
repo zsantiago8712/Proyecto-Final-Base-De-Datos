@@ -19,6 +19,7 @@ typedef enum{
     EMPTY_FIELDS,
     INVALID_EMAIL,
     EMPTY_SET,
+    ERROR_QUERY
 
 }ERROR_CODE;
 

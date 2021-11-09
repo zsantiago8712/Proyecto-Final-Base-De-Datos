@@ -12,7 +12,6 @@ gint main(gint argc, gchar* argv[]){
 
     Library library = NULL;
     library = initLibrary();
-    puts("caca");
     getNextWindow(library, LOGIN);
 
     gtk_main();

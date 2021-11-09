@@ -9,13 +9,25 @@
 
 
 
-char*** createMatrixString(char*** matrixString, uint16_t rows, uint16_t columns);
-char*** freeMatrixString(char*** matrixString, uint16_t rows);
-char** setMoreColumns(char** listString, size_t columns);
-char*** setMoreRows(char*** matrixString, size_t rows, size_t columns);
-char* reallocStringSize(char* columnData, char* word);
-char** createListString(char** listStirng, size_t columns);
 
 
+//CONSTRUCTORS
+char*** createMatrixString(char*** matrixString, uint8_t rows, uint8_t columns);
+char** createListString(char** listStirng, uint8_t columns);
 
-#endif
+
+//FREES
+char*** freeMatrixString(char*** matrixString, uint8_t rows);
+char** freeListString(char** listStirng);
+char* freeString(char* string);
+
+
+//SETTERS
+char*** setMoreRows(char*** matrixString, uint8_t rows, uint8_t columns);
+char** setMoreColumns(char** listString, uint8_t columns);
+char* setSizeColumn(char* columnData, char* word);
+char* setResizeColumn(char* columnData, char* word);
+
+
+#endif 
+

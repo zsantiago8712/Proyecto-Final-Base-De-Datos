@@ -7,7 +7,7 @@
 #include <mysql/mysql.h>
 #include "User.h"
 #include "Data.h"
-
+#include <gtk/gtk.h>
 
 
 typedef struct _DataBase* DataBase;
