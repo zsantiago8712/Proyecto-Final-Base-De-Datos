@@ -1,10 +1,10 @@
 #include "../libs/Library.h"
 
 
-static ERROR_CODE validateLogin(GtkButton *boton, gpointer userData);
+static ERRORS_ENTRY validateLogin(GtkButton *boton, gpointer userData);
 static ERROR_CODE dialogWarning(int8_t error);
-static ERROR_CODE validateEmail(char* correo);
-static ERROR_CODE validateEmptyFileds(char* correo, char* password);
+static ERRORS_ENTRY validateEmail(char* correo);
+static ERROR_CODE validateEmptyFileds(const char* strintToValiidate);
 static gboolean delete_event_handler(GtkWidget *widget, GdkEvent *event, gpointer userData);
 static void cerrar(GtkWidget *widget, gpointer userData);
 static ERROR_CODE chanegeWindow(GtkButton *boton, gpointer userData);
@@ -12,6 +12,23 @@ static void init_list(GtkWidget *list);
 static void add_to_list(GtkWidget *list, gchar **str);
 static void on_changed(GtkWidget *widget, gpointer label);
 static ERROR_CODE searchUserAction(GtkButton *boton, gpointer userData);
+static ERROR_CODE addUser(GtkWidget *widget, gpointer userData);
+static ERROR_CODE setTypeAdmin(GtkWidget *widget, gpointer userData);
+static ERROR_CODE setTypeClient(GtkWidget *widget, gpointer userData);
+static ERRORS_ENTRY validatePasswordField(const char* entryToValidate);
+static ERRORS_ENTRY validateCorreoField(const char* entryToValidate);
+static ERRORS_ENTRY validateSemestreField(uint8_t entryToValidate);
+static ERRORS_ENTRY validateCarreraField(const char* entryToValidate);
+static ERRORS_ENTRY validateApellidoPatField(const char* entryToValidate);
+static ERRORS_ENTRY validateApellidoMatField(const char* entryToValidate);
+static ERRORS_ENTRY validateNameField(const char* entryToValidate);
+static ERRORS_ENTRY saveNewUser(GtkWidget *widget, gpointer userData);
+static const char* convertSemestreToString(uint8_t semestre);
+static ERROR_CODE cancelSaveNewUser(GtkWidget *widget, gpointer userData);
+static ERROR_CODE setFechaNacimientoFromCalendar(GtkWidget *widget, gpointer userData);
+static ERROR_CODE updateList(Library library);
+
+
 
 struct _Library{
 
@@ -29,11 +46,14 @@ struct _Library{
     
 
     //WIDGETS GTK
-    GtkWidget* window;
+    GtkWidget* window, *secundaryWindow;
     GtkWidget* correo;
     GtkWidget* password;
     GtkWidget* list;
     GtkWidget* searchEntry;
+    GtkWidget *nombreEntry, *apelidoPatEntry, *apellidoMatEntry, *carreraEntry, *semestreEntry, *correoEntry, *fechaNacimientoEntry, *passwordEntry;
+    uint8_t typeUser;
+
 };
 
 
@@ -56,6 +76,7 @@ Library initLibrary(void){
     newLibrary->dataBase = initDataBase();
     newLibrary->data = initData();
     newLibrary->nextWindow = LOGIN;
+    newLibrary->typeUser = ADMIN;
 
     return newLibrary;
 }
@@ -74,6 +95,14 @@ Library freeLibrary(Library library){
     return library;
 }
 
+
+
+
+
+/****************************************************************************************************/
+/****************************************************************************************************/
+
+// VENTANAS
 ERROR_CODE windowLoggin(Library library){
 
     GtkWidget *cajaV, *cajaH4, *cajaH, *cajaH2, *cajaH3, *separador,
@@ -130,6 +159,8 @@ ERROR_CODE windowLoggin(Library library){
     return ERROR_OK;
 
 }
+
+
 
 ERROR_CODE windowMenuPrincipal(Library library){
 
@@ -219,7 +250,7 @@ ERROR_CODE editUsersWindow(Library library){
         add_to_list(library->list, getRowDataBd(library->data, i));
 
 
-    gtk_window_set_title(GTK_WINDOW(library->window), "List view");
+    gtk_window_set_title(GTK_WINDOW(library->window), "LIBRERIA JSS");
     gtk_window_set_position(GTK_WINDOW(library->window), GTK_WIN_POS_CENTER);
     gtk_container_set_border_width(GTK_CONTAINER(library->window), 10);
     gtk_window_set_default_size(GTK_WINDOW(library->window), 300, 250);
@@ -232,12 +263,12 @@ ERROR_CODE editUsersWindow(Library library){
     g_signal_connect(G_OBJECT(library->window), "delete_event", G_CALLBACK(delete_event_handler), library);
     g_signal_connect(G_OBJECT(library->window), "destroy", G_CALLBACK(cerrar), library);
     g_signal_connect(G_OBJECT(botonBuscar), "clicked", G_CALLBACK(searchUserAction), library);
+    g_signal_connect(G_OBJECT(botonAgregarUsr), "clicked", G_CALLBACK(addUser), library);
     g_signal_connect(selection, "changed", G_CALLBACK(on_changed), label);
     
     gtk_container_add(GTK_CONTAINER(sw), library->list);
 
     gtk_box_pack_start(GTK_BOX(vbox), sw, TRUE, TRUE, 5);
-    //gtk_box_pack_start(GTK_BOX(vbox), library->list, TRUE, TRUE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), library->searchEntry, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), botonBuscar, FALSE, FALSE, 5);
@@ -253,6 +284,11 @@ ERROR_CODE editUsersWindow(Library library){
     return ERROR_OK;
 }
 
+
+
+
+/****************************************************************************************************/
+/****************************************************************************************************/
 
 
 // GETTERS
@@ -281,7 +317,7 @@ ERROR_CODE getNextWindow(Library library, WINDOWS nextWindow){
 
 
 // STATICS FUNCTIONS
-static ERROR_CODE validateLogin(GtkButton *boton, gpointer userData){
+static ERRORS_ENTRY validateLogin(GtkButton *boton, gpointer userData){
 
     Library library = (Library) userData;
 
@@ -292,21 +328,21 @@ static ERROR_CODE validateLogin(GtkButton *boton, gpointer userData){
     printf("PASSWORD: %s\n", getPassword(library->user));
 
  
-    if(validateEmptyFileds(getCorreo(library->user), getPassword(library->user)) == EMPTY_FIELDS){
-        dialogWarning(1);
-        return EMPTY_FIELDS;
+    if(validateEmptyFileds(getCorreo(library->user)) == EMPTY_STRING || validateEmptyFileds(getPassword(library->user)) == EMPTY_STRING){
+        dialogWarning(EMPTY_FIELDS);
+        return EMPTY_STRING;
     }
     else if(validateEmail(getCorreo(library->user)) == INVALID_EMAIL){
-        dialogWarning(2);
+        dialogWarning(INVALID_EMAIL);
         return INVALID_EMAIL;
     }
-    else if(login(library->dataBase, library->user) == USER_NOT_FOUND){
-        dialogWarning(0);
-        return USER_NOT_FOUND;
+    else if(login(library->dataBase, library->user) == EMPTY_SET){
+        dialogWarning(INVALID_MAIL_PASSWORD);
+        return INVALID_MAIL_PASSWORD;
     }
         
     getNextWindow(library, MENU_PRINCIPAL);
-    return ERROR_OK;
+    return OK;
 }
 
 
@@ -324,7 +360,8 @@ static ERROR_CODE dialogWarning(int8_t error){
 
     GtkWidget *windowError, *errorDialog;
     gint respuesta;
-    const char* errorMessage[4] = {"SE INGRESO MAL EL CORREO O LA CONTRASEÑA\n", "SE DEJO ALGUN CAMPO VACIO\n", "EL CORREO INGRESADO NO ES VALIDO", "NO SE ENCONTRO NINGUN USURIO"};
+    const char* errorMessage[] = {"SE INGRESO MAL EL CORREO O LA CONTRASEÑA\n", "SE DEJO ALGUN CAMPO VACIO\n", "EL CORREO INGRESADO NO ES VALIDO", "NO SE ENCONTRO NINGUN USURIO", 
+    "NO SE ENCONTRO NINGUN LIBRO", "SE DEJO VACIO EL CAMPO DE NOMBRE", "SE DEJO VACIO EL CAMPO DE APELLIDO PATERNO", "SE DEJO VACIO EL CAMPO DE CORREO", "SE DEJO VACIO EL CAMPO DE PASSWORD", "SE DEJO VACIO EL CAMPO DE FECHA DE NACIMIENTO", "ALGO SALIO MAL AL INTENAT AGREGAR EL USUARIO"};
 
     windowError = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     errorDialog = gtk_message_dialog_new(GTK_WINDOW(windowError), GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, errorMessage[error], NULL);
@@ -338,12 +375,378 @@ static ERROR_CODE dialogWarning(int8_t error){
     return ERROR_OK;
 }
 
+static ERROR_CODE addUser(GtkWidget *widget, gpointer userData){
 
-static ERROR_CODE validateEmptyFileds(char* correo, char* password){
+    Library library = (Library) userData;
+    GtkWidget *aceptar, *cancelar, *cajaV, *cajaH, *cajaH2, *cajaH3, *cajaH4, *cajaH5, *cajaH6, *cajaH7, *cajaH8, *cajaH9, *cajaH10, *cajaH11, *etiqueta2, *userTypeEntryAdmin, *userTypeEntryClient,
+    *etiqueta, *etiquetaTypeUser, *etiquetaNombre, *etiquetaApellidoPat, *etiquetaApellidoMat, *etiquetaCarrera, *etiquetaSemestre, *etiquetaCorreo, *etiquetaPassword, *etiquetaFechaNacimiento;
 
-    if(strlen(correo) == 0 || strlen(password) == 0){
-        printf("ERROR EMPTY FIELDS: %d\n", EMPTY_FIELDS);
-        return EMPTY_FIELDS;
+    GdkColor important;
+    gdk_color_parse("red", &important); 
+    
+    userTypeEntryAdmin = gtk_radio_button_new_with_label(NULL, "Admin");
+    userTypeEntryClient = gtk_radio_button_new_with_label(gtk_radio_button_get_group(GTK_RADIO_BUTTON(userTypeEntryAdmin)), "Client");
+
+    
+    library->nombreEntry = gtk_entry_new();
+    library->apelidoPatEntry = gtk_entry_new();
+    library->apellidoMatEntry = gtk_entry_new();
+    library->carreraEntry = gtk_entry_new();
+    library->semestreEntry = gtk_spin_button_new_with_range(0, 12, 1);
+    library->correoEntry = gtk_entry_new();
+    library->passwordEntry = gtk_entry_new();
+    library->fechaNacimientoEntry = gtk_calendar_new();
+    library->secundaryWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    library->nextWindow = SECUNDARY_WINDOW;
+
+    aceptar = gtk_button_new_from_stock(GTK_STOCK_APPLY);
+    cancelar = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
+    cajaV = gtk_vbox_new(FALSE, 5);
+    cajaH = gtk_hbox_new(FALSE, 5);
+    cajaH2 = gtk_hbox_new(FALSE, 5);
+    cajaH3 = gtk_hbox_new(FALSE, 5);
+    cajaH4 = gtk_hbox_new(FALSE, 5);
+    cajaH5 = gtk_hbox_new(FALSE, 5);
+    cajaH6 = gtk_hbox_new(FALSE, 5);
+    cajaH7 = gtk_hbox_new(FALSE, 5);
+    cajaH8 = gtk_hbox_new(FALSE, 5);
+    cajaH9 = gtk_hbox_new(FALSE, 5);
+    cajaH10 = gtk_hbox_new(FALSE, 5);
+    cajaH11 = gtk_hbox_new(FALSE, 5);  
+    etiqueta = gtk_label_new("\tIngresa los datos para agregar al usuario\n");
+    etiqueta2 = gtk_label_new(" Es obligatorio que ingrese los datos con un '*'\n");
+    etiquetaTypeUser = gtk_label_new("*TypeUser:");
+    etiquetaNombre = gtk_label_new("*Nombre:");
+    etiquetaApellidoPat = gtk_label_new("*Apellido Pat:");
+    etiquetaApellidoMat = gtk_label_new("Apellido Mat:");
+    etiquetaCarrera = gtk_label_new("Carrera:");
+    etiquetaSemestre = gtk_label_new("Semestre:");
+    etiquetaCorreo = gtk_label_new("*Correo:");
+    etiquetaPassword = gtk_label_new("*Password:");
+    etiquetaFechaNacimiento = gtk_label_new("\n\t\t\t\t*Fecha De Nacimiento:");
+   
+
+
+
+    //Atributos
+    gtk_window_set_title(GTK_WINDOW(library->secundaryWindow), "ADD USER");
+    gtk_window_set_default_size(GTK_WINDOW(library->secundaryWindow), 400, 400);
+    gtk_widget_modify_fg(etiquetaTypeUser, GTK_STATE_NORMAL, &important);
+    gtk_widget_modify_fg(etiquetaNombre, GTK_STATE_NORMAL, &important);
+    gtk_widget_modify_fg(etiquetaApellidoPat, GTK_STATE_NORMAL, &important);
+    gtk_widget_modify_fg(etiquetaCorreo, GTK_STATE_NORMAL, &important);
+    gtk_widget_modify_fg(etiquetaPassword, GTK_STATE_NORMAL, &important);
+    gtk_widget_modify_fg(etiqueta2, GTK_STATE_NORMAL, &important);
+    gtk_widget_modify_fg(etiquetaFechaNacimiento, GTK_STATE_NORMAL, &important);
+ 
+
+    
+    g_signal_connect(G_OBJECT(aceptar), "clicked", G_CALLBACK(saveNewUser), library);
+    g_signal_connect(G_OBJECT(cancelar), "clicked", G_CALLBACK(cancelSaveNewUser), library);
+    g_signal_connect(G_OBJECT(userTypeEntryAdmin), "toggled", G_CALLBACK(setTypeAdmin), library);
+    g_signal_connect(G_OBJECT(userTypeEntryClient), "toggled", G_CALLBACK(setTypeClient), library);
+    g_signal_connect(G_OBJECT(library->fechaNacimientoEntry), "day-selected-double-click", G_CALLBACK(setFechaNacimientoFromCalendar), library);
+
+
+    gtk_box_pack_start(GTK_BOX(cajaV), etiqueta, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(cajaH), etiquetaTypeUser, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH), userTypeEntryAdmin, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH), userTypeEntryClient, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(cajaH2), etiquetaNombre, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH2), library->nombreEntry, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH2, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(cajaH3), etiquetaApellidoPat, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH3), library->apelidoPatEntry, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH3, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(cajaH4), etiquetaApellidoMat, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH4), library->apellidoMatEntry, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH4, FALSE, FALSE, 0);
+    
+    
+    gtk_box_pack_start(GTK_BOX(cajaH5), etiquetaCarrera, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH5), library->carreraEntry, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH5, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(cajaH6), etiquetaSemestre, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH6), library->semestreEntry, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH6, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(cajaH7), etiquetaCorreo, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH7), library->correoEntry, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH7, FALSE, FALSE, 0);
+
+
+    gtk_box_pack_start(GTK_BOX(cajaH8), etiquetaPassword, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH8), library->passwordEntry, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH8, FALSE, FALSE, 0);
+
+
+    gtk_box_pack_start(GTK_BOX(cajaH9), etiquetaFechaNacimiento, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH9, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(cajaH10), library->fechaNacimientoEntry, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH10, FALSE, FALSE, 0);
+
+
+    gtk_box_pack_start(GTK_BOX(cajaH11), aceptar, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaH11), cancelar, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(cajaV), cajaH11, FALSE, FALSE, 5);
+    
+    gtk_box_pack_start(GTK_BOX(cajaV), etiqueta2, FALSE, FALSE, 5);
+    gtk_container_add(GTK_CONTAINER(library->secundaryWindow), cajaV);
+    gtk_widget_show_all(library->secundaryWindow); 
+
+    return ERROR_OK;
+
+}
+
+static ERROR_CODE setTypeAdmin(GtkWidget *widget, gpointer userData){
+    
+    Library library = (Library) userData;  
+    library->typeUser = ADMIN;
+    printf("\nTYPE USER ADMIN: %d", library->typeUser);
+
+    return ERROR_OK;
+}
+
+
+static ERROR_CODE setTypeClient(GtkWidget *widget, gpointer userData){
+    
+    Library library = (Library) userData;  
+    library->typeUser = CLIENT;
+
+    printf("\nTYPE USER CLIENT: %d", library->typeUser);
+
+    return ERROR_OK;
+}
+
+static ERROR_CODE setFechaNacimientoFromCalendar(GtkWidget *widget, gpointer userData){
+
+    Library library = (Library) userData;
+    guint day, month, year;
+    char date[20];
+
+    gtk_calendar_get_date(GTK_CALENDAR(library->fechaNacimientoEntry), &year, &month, &day);
+    printf("\nDAY: %d | MONTH: %d | YEAR: %d\n", day, month, year);
+
+
+    sprintf(date, "%d/%d/%d", year, month, day);
+
+    setArgumentInsert(library->data, date, 8);
+    printf("\nDATE: %s\n", getArgumentInsert(library->data, 8));
+
+    return ERROR_OK;    
+}
+
+static ERRORS_ENTRY saveNewUser(GtkWidget *widget, gpointer userData){
+
+
+    Library library = (Library) userData; 
+    
+    printf("TYPE USER %d\n", library->typeUser);
+    if(library->typeUser == ADMIN)
+        setArgumentInsert(library->data, "TRUE", 0);
+    else
+        setArgumentInsert(library->data, "FALSE", 0);
+    
+
+    printf("\n%s\n", getArgumentInsert(library->data, 0));
+
+    if(validateNameField(gtk_entry_get_text(GTK_ENTRY(library->nombreEntry))) == OK){
+        setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->nombreEntry)), 1);
+        printf("\n%s\n",getArgumentInsert(library->data, 1));
+    }
+    else{
+        clearDataInsert(library->data);
+        return ERROR_FIELDS;
+    }
+       
+
+
+    if(validateApellidoPatField(gtk_entry_get_text(GTK_ENTRY(library->apelidoPatEntry))) == OK){
+        setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->apelidoPatEntry)), 2);
+        printf("\n%s\n",getArgumentInsert(library->data, 2));
+    }
+    else{
+        clearDataInsert(library->data);
+        return ERROR_FIELDS;
+    }
+
+
+    
+    
+    
+    if(validateApellidoMatField(gtk_entry_get_text(GTK_ENTRY(library->apellidoMatEntry))) == OK){
+        setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->apellidoMatEntry)), 3);  
+        printf("\n%s\n",getArgumentInsert(library->data, 3));
+    }
+    else{
+        setArgumentInsert(library->data, "NULL", 3);
+        printf("\n%s\n",getArgumentInsert(library->data, 3));
+    }
+    
+
+    
+    if(validateCarreraField(gtk_entry_get_text(GTK_ENTRY(library->carreraEntry))) == OK){
+        setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->carreraEntry)), 4);  
+        printf("\n%s\n",getArgumentInsert(library->data, 4));
+    }
+    else{
+        setArgumentInsert(library->data, "NULL", 4);
+        printf("\n%s\n",getArgumentInsert(library->data, 4));
+    }
+
+    
+    if(validateSemestreField(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(library->semestreEntry))) == OK){
+        setArgumentInsert(library->data, convertSemestreToString(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(library->semestreEntry))), 5);
+        printf("\n%s\n",getArgumentInsert(library->data, 5));
+    }
+    else{
+        setArgumentInsert(library->data, "NULL", 5);
+        printf("\n%s\n",getArgumentInsert(library->data, 5));
+    }
+        
+
+    if(validateCorreoField(gtk_entry_get_text(GTK_ENTRY(library->correoEntry))) == OK){
+        setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->correoEntry)), 6);
+        printf("\n%s\n",getArgumentInsert(library->data, 6));
+    }else{
+        clearDataInsert(library->data); 
+        return ERROR_FIELDS;
+    }
+
+
+    if(validatePasswordField(gtk_entry_get_text(GTK_ENTRY(library->passwordEntry))) == OK){
+        setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->passwordEntry)), 7);
+        printf("\n%s\n",getArgumentInsert(library->data, 7));
+    }else{
+        clearDataInsert(library->data); 
+        return ERROR_FIELDS;
+    }
+    
+
+    if(!getArgumentInsert(library->data, 8)){
+        dialogWarning(F_NAC_FIELD_EMPTY);
+        clearDataInsert(library->data);
+        return ERROR_FIELDS;
+    }
+
+
+    if(addUserToDB(library->dataBase, library->data) != ERROR_OK){
+        clearDataInsert(library->data);  
+        dialogWarning(ADD_USER_ERROR);
+        return ERROR_FIELDS;
+    }
+    
+    clearData(library->data);
+    getAllUsers(library->dataBase, library->data);
+    updateList(library);
+    clearDataInsert(library->data);    
+    return OK;   
+}    
+
+
+static ERROR_CODE cancelSaveNewUser(GtkWidget *widget, gpointer userData){
+
+    Library library = (Library) userData;
+
+    clearDataInsert(library->data); 
+
+    gtk_widget_destroy(library->secundaryWindow);
+    library->nextWindow = SALIR;
+
+    return ERROR_OK;
+}
+
+
+static ERRORS_ENTRY validateNameField(const char* entryToValidate){
+
+    if(validateEmptyFileds(entryToValidate) == EMPTY_STRING){
+        dialogWarning(NAME_FIELD_EMPTY);
+        return NAME_FIELD_EMPTY;
+    }
+    
+    return OK;
+}
+
+static ERRORS_ENTRY validateApellidoPatField(const char* entryToValidate){
+
+    if(validateEmptyFileds(entryToValidate) == EMPTY_STRING){
+        dialogWarning(AP_PAT_FIELD_EMPTY);
+        return NAME_FIELD_EMPTY;
+    }
+    
+    return OK;
+}
+
+
+static ERRORS_ENTRY validateApellidoMatField(const char* entryToValidate){
+
+    if(validateEmptyFileds(entryToValidate) == EMPTY_STRING)
+        return EMPTY_FIELD_OK;
+    
+    
+    return OK;
+}
+
+static ERRORS_ENTRY validateCarreraField(const char* entryToValidate){
+
+    if(validateEmptyFileds(entryToValidate) == EMPTY_STRING)
+        return EMPTY_FIELD_OK;
+    
+    
+    return OK;
+}
+
+static ERRORS_ENTRY validateSemestreField(uint8_t entryToValidate){
+
+    
+    if(entryToValidate == 0)
+        return EMPTY_FIELD_OK; 
+
+    return OK;
+}
+
+
+static ERRORS_ENTRY validateCorreoField(const char* entryToValidate){
+
+    if(validateEmptyFileds(entryToValidate) == EMPTY_STRING){
+        dialogWarning(EMAIL_FIEDL_EMPTY);
+        return EMAIL_FIEDL_EMPTY;
+    }
+    
+    if(validateEmail(entryToValidate) == OK){
+        return OK;
+    }
+
+    dialogWarning(INVALID_EMAIL);
+    return INVALID_EMAIL;
+}
+
+static ERRORS_ENTRY validatePasswordField(const char* entryToValidate){
+
+    if(validateEmptyFileds(entryToValidate) == EMPTY_STRING){
+        dialogWarning(PASSWORD_FIELD_EMPTY);
+        return PASSWORD_FIELD_EMPTY;
+    }
+    
+    return OK;
+}
+
+
+
+
+
+
+static ERROR_CODE validateEmptyFileds(const char* strintToValiidate){
+
+    if(strlen(strintToValiidate) == 0){
+        printf("ERROR EMPTY FIELDS: %d\n", EMPTY_STRING);
+        return EMPTY_STRING;
     }
 
     return ERROR_OK;
@@ -351,7 +754,7 @@ static ERROR_CODE validateEmptyFileds(char* correo, char* password){
 
 
 
-static ERROR_CODE validateEmail(char* correo){
+static ERRORS_ENTRY validateEmail(char* correo){
 
     const char* validsEmails[7] = {"@gmail.com", "@gmail.com.mx", "@yahoo.com", "@yahoo.com.mx", "@icloud.com", "@outlook.com", "@outlook.com.mx"};
     char correoToCheck[BUFSIZ];
@@ -377,11 +780,61 @@ static ERROR_CODE validateEmail(char* correo){
     for(int i = 0; i < 7; i++){
         
         if(strcmp(correoToCheck, validsEmails[i]) == 0)
-            return ERROR_OK;
+            return OK;
     }
 
     printf("ERROR INVALID EMAIL: %d\n", INVALID_EMAIL);
     return INVALID_EMAIL;
+}
+
+
+
+static const char* convertSemestreToString(uint8_t semestre){
+
+    switch (semestre){
+        case 0:
+            return "NULL";
+
+        case 1:
+            return "1";
+
+        case 2:
+            return "2";
+
+        case 3:
+            return "3";
+
+        case 4:
+            return "4";
+        
+        case 5:
+            return "5";
+
+        case 6:
+            return "6";
+
+        case 7:
+            return "7";
+
+        case 8:
+            return "8";
+
+        case 9:
+            return "9";
+
+        case 10:
+            return "10";
+
+        case 11:
+            return "11";
+
+        case 12:
+            return "12";
+
+        default:
+            return "NULL";
+    }
+
 }
 
 static gboolean delete_event_handler(GtkWidget *widget, GdkEvent *event, gpointer userData){
@@ -391,6 +844,9 @@ static gboolean delete_event_handler(GtkWidget *widget, GdkEvent *event, gpointe
     g_print("En delete_event_handler.\n");
     return FALSE;
 }
+
+
+
 
 static void cerrar(GtkWidget *widget, gpointer userData){
 
@@ -402,6 +858,8 @@ static void cerrar(GtkWidget *widget, gpointer userData){
     gtk_main_quit();
         
 }
+
+
 
 
 static void init_list(GtkWidget *list) {
@@ -428,7 +886,7 @@ static void init_list(GtkWidget *list) {
     gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
 
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Apellido Pat", renderer, "text", 4, NULL);
+    column = gtk_tree_view_column_new_with_attributes("Apellido Mat", renderer, "text", 4, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
 
     renderer = gtk_cell_renderer_text_new();
@@ -457,6 +915,8 @@ static void init_list(GtkWidget *list) {
 
     g_object_unref(store);
 }
+
+
 
 static void add_to_list(GtkWidget *list, gchar **str) {
     
@@ -498,23 +958,24 @@ static void on_changed(GtkWidget *widget, gpointer label) {
 
 static ERROR_CODE searchUserAction(GtkButton *boton, gpointer userData){
     
-    GtkListStore *store;
+    /*GtkListStore *store;
     GtkTreeModel *model;
     GtkTreeIter  iter;
-    Library library = (Library) userData;
-
-    setArgumentSearch(library->data,  gtk_entry_get_text(GTK_ENTRY(library->searchEntry)));
-   
     
+
+    setArgumentSearch(library->data,  gtk_entry_get_text(GTK_ENTRY(library->searchEntry)));*/
+   
+    Library library = (Library) userData;
     
     if(searchUser(library->dataBase, library->data) == EMPTY_SET){
-        dialogWarning(3);
+        dialogWarning(USER_NOT_FOUND);
         return EMPTY_SET;
     }
 
 
+    updateList(library);
 
-    store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(library->list)));
+    /*store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(library->list)));
     model = gtk_tree_view_get_model(GTK_TREE_VIEW(library->list));
 
     if (gtk_tree_model_get_iter_first(model, &iter) == FALSE) {
@@ -525,8 +986,38 @@ static ERROR_CODE searchUserAction(GtkButton *boton, gpointer userData){
 
 
     for(uint8_t i = 0; i < getDataRows(library->data); i++)
-        add_to_list(library->list, getRowDataBd(library->data, i));
+        add_to_list(library->list, getRowDataBd(library->data, i));*/
     
         
+    return ERROR_OK;
+}
+
+
+
+
+static ERROR_CODE updateList(Library library){
+
+    GtkListStore *store;
+    GtkTreeModel *model;
+    GtkTreeIter  iter;
+
+    setArgumentSearch(library->data,  gtk_entry_get_text(GTK_ENTRY(library->searchEntry)));
+
+
+    store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(library->list)));
+    model = gtk_tree_view_get_model(GTK_TREE_VIEW(library->list));
+
+
+
+
+    if (gtk_tree_model_get_iter_first(model, &iter) == FALSE) {
+        return MEM_ERROR;
+    }
+    
+    gtk_list_store_clear(store);
+
+    for(uint8_t i = 0; i < getDataRows(library->data); i++)
+        add_to_list(library->list, getRowDataBd(library->data, i));
+
     return ERROR_OK;
 }

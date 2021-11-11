@@ -1,20 +1,6 @@
 
 //Creacion de tablas
 
-CREATE TABLE Users (
-    UserID int AUTO_INCREMENT PRIMARY KEY,
-    Nombre varchar(255) NOT NULL,
-    Apellidos varchar(255) NOT NULL,
-    Carrera varchar(50),
-    Correo varchar(100) NOT NULL,
-    Semestre int,
-    TipoUser boolean NOT NULL,
-    Password varchar(50) NOT NULL
-
-);
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
 // Usuarios
 CREATE TABLE Usuarios(
@@ -45,8 +31,8 @@ CREATE TABLE Sistema_prestamos(
     Id_prestamo int AUTO_INCREMENT PRIMARY KEY, 
     Id_cuenta int not null,
     Isbn int not null, 
-    FOREIGN KEY (Id_cuenta) REFERENCES Usuarios(Id_cuenta),
-    FOREIGN KEY (Isbn) REFERENCES Catalogo(Isbn),
+    FOREIGN KEY (Id_cuenta) REFERENCES Usuarios(Id_cuenta) ON DELETE CASCADE,
+    FOREIGN KEY (Isbn) REFERENCES Catalogo(Isbn) ON DELETE CASCADE,
     Fecha_solicitud date not null,
     Fecha_regreso date not null    
 );
@@ -76,6 +62,8 @@ INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Corre
     VALUES(False, 'Felicia', 'Ordones', 'Cabrera', 'Literatura', 5, 'felicia@yahoo.com', AES_ENCRYPT('ORDONES', 'AES'), '1975/07/05');
 INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
 VALUES(False, 'Sandra', 'Rosales', 'Cobos', 'Ingeneria Quimica', 5, 'sandra@yahoo.com', AES_ENCRYPT('ROSALES', 'AES'), '1990/03/26');
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) 
+VALUES(False, 'admin', 'admin', 'amin', 'NULL', NULL, 'admin@yahoo.com', AES_ENCRYPT('admin', 'AES'), '1999/10/20');
     
     
     // Catalogo
@@ -103,15 +91,27 @@ SELECT Id_cuenta, User_type, Nombre,Ap_pat, Ap_mat, Carrera, Semestre, Correo, F
     // Obtener Todos los usuarios
 SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios;
 
-// Obtener Usuario con el nombre del Libros4
+// *! Obtener Usuario con el nombre del Libro
 SELECT USR.Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento,(AES_DECRYPT(Password, 'AES')) AS Password 
     FROM Usuarios AS USR, Sistema_prestamos AS SP, Catalogo AS C  WHERE C.Nombre_lb = 'It' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;
 
 
 
 
+// // Obtener Usuario con el nombre del Libros 
+SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_regreso
+    FROM Usuarios AS USR, Sistema_prestamos AS SP, Catalogo AS C  WHERE C.Nombre_lb = 'It' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;
+
+
+// BORRAR ROW
+DELETE FROM Usuarios WHERE Id_cuenta = 11;
+
+
+
 //UPDATE 
-UPDATE Users SET Correo="mau@icloud.com" WHERE UserID=3;
+UPDATE Usuarios SET User_type=TRUE WHERE Id_cuenta=11;
+UPDATE Usuarios SET Ap_mat="BolaNos" WHERE Id_cuenta=6;
+
 
 SELECT UserID, Nombre, (AES_DECRYPT(Password, 'AES')) AS Password_Recuperado FROM Users;
 SELECT *, (AES_DECRYPT(Password, 'AES')) AS Password_Recuperado FROM Usuarios;
@@ -144,3 +144,5 @@ END$$
 DELIMITER;
 
 
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, Password, F_nacimiento) 
+            VALUES(FALSE, 'Dany', 'gamo', 'mm', 'Derecho', 5, 'dany@yahoo.com', AES_ENCRYPT('Dany', 'AES'), '2021/10/9');

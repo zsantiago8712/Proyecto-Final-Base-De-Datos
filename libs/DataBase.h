@@ -21,5 +21,6 @@ DataBase freeDataBase(DataBase database);
 ERROR_CODE login(DataBase dataBase, User user);
 ERROR_CODE getAllUsers(DataBase dataBase, Data data);
 ERROR_CODE searchUser(DataBase dataBase, Data data);
+ERROR_CODE addUserToDB(DataBase dataBase, Data data);
 
 #endif

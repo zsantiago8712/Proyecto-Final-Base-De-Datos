@@ -13,6 +13,7 @@ static char* createSearchUserByNameQuery(Data data, char* queryToUse);
 static char* createSearchUserByIdQuery(Data data , char* queryToUse);
 static char* createSearchUserByCarreraQuery(Data data , char* queryToUse);
 static char* createSearchUserByNombreLibro(Data data , char* queryToUse);
+static char* createAddUserQuery(Data data, char* queryToUse);
 
 struct _DataBase{
     char* server;
@@ -117,7 +118,7 @@ ERROR_CODE login(DataBase dataBase, User user){
     }else{
         printf("ERROR: %d USER NOT FOUND\n", USER_NOT_FOUND);
         mysql_free_result(res);
-        return USER_NOT_FOUND;
+        return EMPTY_SET;
     }
 
     
@@ -142,10 +143,16 @@ ERROR_CODE getAllUsers(DataBase dataBase, Data data){
         
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
+        printf("\nROWS: %d || COLUMNS: %d\n", numRows, numColumns);
 
-        if(numRows >= getNumRows(data))
-            setNumRows(data, numRows);
+        //printf("ROWS --> %d\n", getNumRows(data));
+        if(numRows >= getNumRows(data) - 1){
+            
+            //setNumRows(data, numRows);
+            //printf("NEW ROWS --> %d\n", getNumRows(data));
+            reallocBdDataRows(data);
+        }
+            
        
         setbdData(data, row, indexRows, 10);
         
@@ -182,6 +189,22 @@ ERROR_CODE searchUser(DataBase dataBase, Data data){
     return EMPTY_SET;   
 }
 
+
+
+ERROR_CODE addUserToDB(DataBase dataBase, Data data){
+
+    char query[BUFSIZ];
+    createAddUserQuery(data, query);
+
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
+
+    printf("ADD USER SUCCESSFULLY\n");
+    return ERROR_OK;
+}
+
+
+// SATICS
 static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
 
     MYSQL_RES* res;
@@ -209,8 +232,10 @@ static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
         numColumns = mysql_num_fields(res);
 
 
-        if(numRows > getNumRows(data))
+        if(numRows > getNumRows(data)){
             setNumRows(data, numRows);
+            reallocBdDataRows(data);
+        }
             
 
         setbdData(data, row, indexRows, 10);
@@ -257,8 +282,10 @@ static ERROR_CODE getUsersById(DataBase dataBase, Data data){
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
 
-        if(numRows > getNumRows(data))
+        if(numRows > getNumRows(data)){
             setNumRows(data, numRows);
+            reallocBdDataRows(data);
+        }
 
         setbdData(data, row, indexRows, numColumns);
 
@@ -301,8 +328,10 @@ static ERROR_CODE getUserByCarrera(DataBase dataBase, Data data){
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
 
-        if(numRows > getNumRows(data))
+        if(numRows > getNumRows(data)){
             setNumRows(data, numRows);
+            reallocBdDataRows(data);
+        }
 
         setbdData(data, row, indexRows, numColumns);
         printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
@@ -349,8 +378,10 @@ static ERROR_CODE getUserByNombreLibro(DataBase dataBase, Data data){
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
 
-        if(numRows > getNumRows(data))
+        if(numRows > getNumRows(data)){
             setNumRows(data, numRows);
+            reallocBdDataRows(data);
+        }
 
         setbdData(data, row, indexRows, numColumns);
 
@@ -422,7 +453,6 @@ static char* createSearchUserByCarreraQuery(Data data , char* queryToUse){
 
 static char* createSearchUserByNombreLibro(Data data , char* queryToUse){
 
-    puts("SEARCH BY NOMBRE LIB22");
     char query[BUFSIZ] = "SELECT USR.Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios AS USR, Sistema_prestamos AS SP,  Catalogo AS C  WHERE C.Nombre_lb = '";
     strcat(query, getArgumentSearch(data));
     strcat(query, "' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;");
@@ -440,4 +470,17 @@ static ERROR_CODE sendQuery(DataBase dataBase, const char* query){
     }
 
     return ERROR_OK;
+}
+
+
+static char* createAddUserQuery(Data data, char* queryToUse){
+
+    char query[BUFSIZ];
+
+    sprintf(query, "INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) VALUES(%s, '%s', '%s', '%s', '%s', %s, '%s', AES_ENCRYPT('%s', 'AES'), '%s');", getArgumentInsert(data, 0), getArgumentInsert(data, 1), getArgumentInsert(data, 2), getArgumentInsert(data, 3), getArgumentInsert(data, 4), getArgumentInsert(data, 5), getArgumentInsert(data, 6), getArgumentInsert(data, 7), getArgumentInsert(data, 8));
+
+    printf("\nQUERY:\n %s\n", query);
+
+    strcpy(queryToUse, query);
+    return strdup(query);
 }

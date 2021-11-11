@@ -5,8 +5,8 @@ struct _Data{
 
     char*** bdData;
     char* argumentSearch;
-    uint8_t rows, columns, rowsData;
-
+    uint8_t rows, columns, rowsData, columnInsert;
+    char** argumentsInsert;
 };
 
 
@@ -23,6 +23,8 @@ Data initData(void){
     newData->columns = 10;
     newData->rowsData = 0;
     newData->bdData = createMatrixString(newData->bdData, newData->rows, newData->columns);
+    newData->columnInsert = 10;
+    newData->argumentsInsert = createListString(newData->argumentsInsert, newData->columnInsert);
     newData->argumentSearch = "\0";
     return newData;
 }
@@ -33,6 +35,8 @@ Data freeData(Data data){
 
     puts("free Data");
     data->bdData = freeMatrixString(data->bdData, data->rows);
+    data->argumentsInsert = freeListString(data->argumentsInsert);
+
 
     if(data->argumentSearch[0] != '\0')
         free(data->argumentSearch);
@@ -72,18 +76,35 @@ ERROR_CODE clearData(Data data){
 
 
 
-ERROR_CODE clearArgumentString(Data data){
+ERROR_CODE clearDataInsert(Data data){
 
     if(!data){
         fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
         exit(EMPTY_STRUCT);
     }
 
-   data->argumentSearch = freeString(data->argumentSearch);
-       
+    data->argumentsInsert = freeListString(data->argumentsInsert);
+    data->columnInsert = 10;
+    data->argumentsInsert = createListString(data->argumentsInsert, data->columnInsert);
     return ERROR_OK;
 }
 
+
+ERROR_CODE reallocBdDataColumns(Data data){
+
+    for(uint8_t i = 0; i < data->rows; i++){
+        data->bdData[i] = setMoreColumns(data->bdData[i], data->columns);
+    }
+    
+    return ERROR_OK;
+}
+
+ERROR_CODE reallocBdDataRows(Data data){
+
+    data->bdData = setMoreRows(data->bdData, data->rows, data->columns);
+    data->rows *= 2;
+    return ERROR_OK;
+}
 // SETTERS
 
 ERROR_CODE setbdData(Data data, char** newData, uint8_t indexRows, uint8_t numColumns){
@@ -94,8 +115,11 @@ ERROR_CODE setbdData(Data data, char** newData, uint8_t indexRows, uint8_t numCo
         exit(EMPTY_STRUCT);
     }
 
-    if(numColumns >= data->columns)
+    /*if(numColumns >= data->columns){
         setNumColumns(data, numColumns);
+        reallocBdDataColumns(data);
+    }*/
+    
 
     for(int i = 0; i < numColumns; i++){
 
@@ -124,8 +148,8 @@ ERROR_CODE setNumRows(Data data, uint8_t rows){
         exit(EMPTY_STRUCT);
     }
 
-
-    while(data->rows < rows)
+    
+    while(data->rows <= rows)
         data->rows *= 2;
         
 
@@ -153,7 +177,7 @@ ERROR_CODE setNumColumns(Data data, uint8_t columns){
         exit(EMPTY_STRUCT);
     }
 
-   while(data->columns < columns)
+   while(data->columns <= columns)
         data->columns *= 2;
 
   
@@ -171,6 +195,21 @@ ERROR_CODE setArgumentSearch(Data data, const char* newArgumentSearch){
     data->argumentSearch = strdup(newArgumentSearch);
     
 
+    return ERROR_OK;
+}
+
+
+ERROR_CODE setArgumentInsert(Data data, const char* newArgumentInsert, uint8_t index){
+
+    if(!data){
+        fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
+        exit(EMPTY_STRUCT);
+    }
+
+    data->argumentsInsert[index] = calloc(strlen(newArgumentInsert), sizeof(char));
+    data->argumentsInsert[index] = strdup(newArgumentInsert);
+
+    printf("NEW DATA INSERT : %s", data->argumentsInsert[index]);
     return ERROR_OK;
 }
 
@@ -239,3 +278,14 @@ char* getArgumentSearch(Data data){
 
     return data->argumentSearch;
 }
+
+char* getArgumentInsert(Data data, uint8_t index){
+
+    if(!data){
+        fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
+        exit(EMPTY_STRUCT);
+    }
+
+    return data->argumentsInsert[index];
+}
+

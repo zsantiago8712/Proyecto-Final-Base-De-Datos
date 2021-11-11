@@ -24,7 +24,8 @@ typedef enum{
     EDIT_USERS,
     RENTA_LIBROS,
     UPDATE,
-    SALIR
+    SALIR,
+    SECUNDARY_WINDOW,
 }WINDOWS;
 
 

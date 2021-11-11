@@ -78,7 +78,7 @@ char*** setMoreRows(char*** matrixString, uint8_t rows, uint8_t columns){
 	tempPtr = realloc(matrixString, sizeof(matrixString) * rows * 2);
     checkMatrixStringCR(tempPtr);
 
-	for(uint8_t i = 0; i < rows * 2; i++){
+	for(uint8_t i = 0; i < rows; i++){
 		tempPtr[rows + i] = createListString(tempPtr[rows + i], columns);
 		checkListStringCR(tempPtr[rows + i]);
 	}
