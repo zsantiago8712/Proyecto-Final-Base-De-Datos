@@ -146,3 +146,19 @@ DELIMITER;
 
 INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, Password, F_nacimiento) 
             VALUES(FALSE, 'Dany', 'gamo', 'mm', 'Derecho', 5, 'dany@yahoo.com', AES_ENCRYPT('Dany', 'AES'), '2021/10/9');
+
+
+INSERT INTO Sistema_prestamos(Id_cuenta, Isbn, Fecha_solicitud, Fecha_regreso) VALUES('idUsuario', 'ISBN', now(), DATE_ADD(now(), INTERVAL 8 DAY));
+
+
+DELIMITER $$
+CREATE PROCEDURE rentaLibro(Id_cuentaToSet INT, IsbnToSet INT, Num_ejemplaresToSet INT) 
+
+BEGIN 
+
+INSERT INTO Sistema_prestamos(Id_cuenta, Isbn, Fecha_solicitud, Fecha_regreso) VALUES(Id_cuentaToSet, IsbnToSet, now(), DATE_ADD(now(), INTERVAL 8 DAY));
+UPDATE Catalogo SET Num_ejemplares = Num_ejemplaresToSet - 1 WHERE Isbn = IsbnToSet;
+
+END$$ 
+
+DELIMITER;

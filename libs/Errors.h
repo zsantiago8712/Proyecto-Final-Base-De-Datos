@@ -16,6 +16,7 @@ typedef enum{
     EMPTY_SET,
     ERROR_QUERY,
     EMPTY_STRING,
+    STOCK_ERROR,
 
 
 
@@ -35,6 +36,8 @@ typedef enum{
     PASSWORD_FIELD_EMPTY, 
     F_NAC_FIELD_EMPTY,
     ADD_USER_ERROR,
+    BOOK_STOCK_ERROR,
+    RENTA_ERROR,
     INVALID_SEMESTRE,
     EMPTY_FIELD_OK,
     OK,

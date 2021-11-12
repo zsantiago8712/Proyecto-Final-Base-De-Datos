@@ -23,11 +23,19 @@ typedef enum{
     MENU_PRINCIPAL,
     EDIT_USERS,
     RENTA_LIBROS,
+    PRESATAMOS,
     UPDATE,
     SALIR,
     SECUNDARY_WINDOW,
 }WINDOWS;
 
+
+typedef enum{
+
+    USERS, 
+    BOOKS,
+
+}UPDATES;
 
 
 // Constructor
@@ -41,4 +49,5 @@ ERROR_CODE windowLoggin(Library library);
 ERROR_CODE windowMenuPrincipal(Library library);
 ERROR_CODE getNextWindow(Library library, WINDOWS nextWindow);
 ERROR_CODE editUsersWindow(Library library);
+ERROR_CODE rentarLibro(Library library);
 #endif

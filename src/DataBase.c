@@ -14,6 +14,16 @@ static char* createSearchUserByIdQuery(Data data , char* queryToUse);
 static char* createSearchUserByCarreraQuery(Data data , char* queryToUse);
 static char* createSearchUserByNombreLibro(Data data , char* queryToUse);
 static char* createAddUserQuery(Data data, char* queryToUse);
+static char* createSearchLibroByNameQuery(Data data, char* queryToUse);
+static char* createSearchLibroByISBNQuery(Data data, char* queryToUse);
+static char* createSearchLibroByEditorialQuery(Data data, char* queryToUse);
+static char* createSearchLibroByNumEjemplaresQuery(Data data, char* queryToUse);
+static ERROR_CODE getLibroByName(DataBase dataBase, Data data);
+static ERROR_CODE getLibrosByIsbn(DataBase dataBase, Data data);
+static ERROR_CODE getLibrosByEditorial(DataBase dataBase, Data data);
+static ERROR_CODE getLibrosByNumEjemplares(DataBase dataBase, Data data);
+static char* createRentQuery(Data data, User user, char* queryToUse);
+
 
 struct _DataBase{
     char* server;
@@ -145,13 +155,9 @@ ERROR_CODE getAllUsers(DataBase dataBase, Data data){
         numColumns = mysql_num_fields(res);
         printf("\nROWS: %d || COLUMNS: %d\n", numRows, numColumns);
 
-        //printf("ROWS --> %d\n", getNumRows(data));
-        if(numRows >= getNumRows(data) - 1){
-            
-            //setNumRows(data, numRows);
-            //printf("NEW ROWS --> %d\n", getNumRows(data));
+        if(numRows >= getNumRows(data) - 1)
             reallocBdDataRows(data);
-        }
+        
             
        
         setbdData(data, row, indexRows, 10);
@@ -163,6 +169,41 @@ ERROR_CODE getAllUsers(DataBase dataBase, Data data){
     mysql_free_result(res);
     
     return ERROR_OK;
+}
+
+
+ERROR_CODE getAllLibros(DataBase dataBase, Data data){
+
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0;
+    char query[BUFSIZ] = "SELECT * FROM Catalogo;";
+
+    
+    sendQuery(dataBase, query);
+    
+    res = mysql_use_result(dataBase->connection);
+    
+    while ((row = mysql_fetch_row(res)) != NULL){
+        
+        numRows = mysql_num_rows(res);
+        numColumns = mysql_num_fields(res);
+        printf("\nROWS: %d || COLUMNS: %d\n", numRows, numColumns);
+
+        if(numRows >= getNumRows(data) - 1)
+            reallocBdDataRows(data);
+        
+            
+       
+        setbdData(data, row, indexRows, numColumns);
+        indexRows++;        
+    }
+
+    setDataRows(data, numRows);
+    mysql_free_result(res);
+    
+    return ERROR_OK;
+
 }
 
 
@@ -191,6 +232,30 @@ ERROR_CODE searchUser(DataBase dataBase, Data data){
 
 
 
+ERROR_CODE searchLibro(DataBase dataBase, Data data){
+
+    if(getLibroByName(dataBase, data) == ERROR_OK){
+        puts("FOUND BY NOMBRE");
+        return ERROR_OK;
+    }
+    else if(getLibrosByIsbn(dataBase, data) == ERROR_OK){
+        puts("FOUND BY ISBN");
+        return ERROR_OK;
+    }
+    else if(getLibrosByEditorial(dataBase, data) == ERROR_OK){
+        puts("FOUND BY EDITORIAL");
+        return ERROR_OK;
+    }
+    else if(getLibrosByNumEjemplares(dataBase, data) == ERROR_OK){
+        puts("FOUND BY NUMEOR EJEMPLARES");
+        return ERROR_OK;
+    }
+        
+    return EMPTY_SET; 
+
+}
+
+
 ERROR_CODE addUserToDB(DataBase dataBase, Data data){
 
     char query[BUFSIZ];
@@ -203,6 +268,18 @@ ERROR_CODE addUserToDB(DataBase dataBase, Data data){
     return ERROR_OK;
 }
 
+
+ERROR_CODE addRenta(DataBase dataBase, Data data, User user){
+
+    char query[BUFSIZ];
+    createRentQuery(data, user, query);
+
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
+    
+    puts("Renta SUCCESSFULLY");
+    return ERROR_OK;
+}
 
 // SATICS
 static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
@@ -233,12 +310,12 @@ static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
 
 
         if(numRows > getNumRows(data)){
-            setNumRows(data, numRows);
+            
             reallocBdDataRows(data);
         }
             
 
-        setbdData(data, row, indexRows, 10);
+        setbdData(data, row, indexRows, numColumns);
 
         printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++; 
@@ -283,7 +360,7 @@ static ERROR_CODE getUsersById(DataBase dataBase, Data data){
         numColumns = mysql_num_fields(res);
 
         if(numRows > getNumRows(data)){
-            setNumRows(data, numRows);
+            
             reallocBdDataRows(data);
         }
 
@@ -329,7 +406,6 @@ static ERROR_CODE getUserByCarrera(DataBase dataBase, Data data){
         numColumns = mysql_num_fields(res);
 
         if(numRows > getNumRows(data)){
-            setNumRows(data, numRows);
             reallocBdDataRows(data);
         }
 
@@ -351,14 +427,13 @@ static ERROR_CODE getUserByCarrera(DataBase dataBase, Data data){
 static ERROR_CODE getUserByNombreLibro(DataBase dataBase, Data data){
 
     
-    MYSQL_RES* res = NULL;
+    MYSQL_RES* res;
     MYSQL_ROW row;
     uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
     char query[BUFSIZ];
 
     createSearchUserByNombreLibro(data, query);
     
-    puts(query);
     if(sendQuery(dataBase, query) == ERROR_QUERY)
         return ERROR_QUERY;
 
@@ -379,7 +454,6 @@ static ERROR_CODE getUserByNombreLibro(DataBase dataBase, Data data){
         numColumns = mysql_num_fields(res);
 
         if(numRows > getNumRows(data)){
-            setNumRows(data, numRows);
             reallocBdDataRows(data);
         }
 
@@ -397,6 +471,210 @@ static ERROR_CODE getUserByNombreLibro(DataBase dataBase, Data data){
     return ERROR_OK;
 }
 
+
+
+static ERROR_CODE getLibroByName(DataBase dataBase, Data data){
+
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
+    char query[BUFSIZ];
+
+    createSearchLibroByNameQuery(data, query);
+    
+    
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
+
+
+    res = mysql_use_result(dataBase->connection);
+
+    while ((row = mysql_fetch_row(res)) != NULL){
+        
+        if(!isData){
+            clearData(data);
+            isData = TRUE;
+        }
+
+        numRows = mysql_num_rows(res);
+        numColumns = mysql_num_fields(res);
+
+
+        if(numRows >= getNumRows(data)){
+            reallocBdDataRows(data);
+        }
+            
+
+        setbdData(data, row, indexRows, numColumns);
+
+        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
+        indexRows++; 
+    }
+
+    setDataRows(data, numRows);
+    mysql_free_result(res);
+    if(!isData)
+        return EMPTY_SET;
+
+    
+    return ERROR_OK;
+
+}
+
+
+static ERROR_CODE getLibrosByIsbn(DataBase dataBase, Data data){
+
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
+    char query[BUFSIZ];
+
+    createSearchLibroByISBNQuery(data, query);
+    
+    
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
+
+
+    res = mysql_use_result(dataBase->connection);
+
+    while ((row = mysql_fetch_row(res)) != NULL){
+        
+        if(!isData){
+            clearData(data);
+            isData = TRUE;
+        }
+
+        numRows = mysql_num_rows(res);
+        numColumns = mysql_num_fields(res);
+
+
+        if(numRows > getNumRows(data)){
+            
+            reallocBdDataRows(data);
+        }
+            
+
+        setbdData(data, row, indexRows, numColumns);
+
+        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
+        indexRows++; 
+    }
+
+    setDataRows(data, numRows);
+    mysql_free_result(res);
+    if(!isData)
+        return EMPTY_SET;
+
+    
+    return ERROR_OK;
+
+}
+
+
+
+static ERROR_CODE getLibrosByEditorial(DataBase dataBase, Data data){
+
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
+    char query[BUFSIZ];
+
+    createSearchLibroByEditorialQuery(data, query);
+    
+    
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
+
+
+    res = mysql_use_result(dataBase->connection);
+
+    while ((row = mysql_fetch_row(res)) != NULL){
+        
+        if(!isData){
+            clearData(data);
+            isData = TRUE;
+        }
+
+        numRows = mysql_num_rows(res);
+        numColumns = mysql_num_fields(res);
+
+
+        if(numRows > getNumRows(data)){
+            
+            reallocBdDataRows(data);
+        }
+            
+
+        setbdData(data, row, indexRows, numColumns);
+
+        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
+        indexRows++; 
+    }
+
+    setDataRows(data, numRows);
+    mysql_free_result(res);
+    if(!isData)
+        return EMPTY_SET;
+
+    
+    return ERROR_OK;
+
+}
+
+
+static ERROR_CODE getLibrosByNumEjemplares(DataBase dataBase, Data data){
+
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0, isData = 0;
+    char query[BUFSIZ];
+
+    createSearchLibroByNumEjemplaresQuery(data, query);
+    
+    
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
+
+
+    res = mysql_use_result(dataBase->connection);
+
+    while ((row = mysql_fetch_row(res)) != NULL){
+        
+        if(!isData){
+            clearData(data);
+            isData = TRUE;
+        }
+
+        numRows = mysql_num_rows(res);
+        numColumns = mysql_num_fields(res);
+
+
+        if(numRows > getNumRows(data)){
+            
+            reallocBdDataRows(data);
+        }
+            
+
+        setbdData(data, row, indexRows, numColumns);
+
+        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
+        indexRows++; 
+    }
+
+    setDataRows(data, numRows);
+    mysql_free_result(res);
+    if(!isData)
+        return EMPTY_SET;
+
+    
+    return ERROR_OK;
+
+}
+
+
+
+//QUERYS
 static char* createLogginQueery(User user, char* queryToUse){
 
     char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre,Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Correo='";
@@ -483,4 +761,60 @@ static char* createAddUserQuery(Data data, char* queryToUse){
 
     strcpy(queryToUse, query);
     return strdup(query);
+}
+
+
+
+static char* createSearchLibroByNameQuery(Data data, char* queryToUse){
+    char query[BUFSIZ];
+    sprintf(query, "SELECT * FROM Catalogo WHERE Nombre_lb = '%s';", getArgumentSearch(data));
+
+    printf("\nQUERY:\n %s\n", query);
+    strcpy(queryToUse, query);
+
+    return queryToUse;
+}
+
+
+static char* createSearchLibroByISBNQuery(Data data, char* queryToUse){
+    char query[BUFSIZ];
+    sprintf(query, "SELECT * FROM Catalogo WHERE Isbn = %s;", getArgumentSearch(data));
+
+    printf("\nQUERY:\n %s\n", query);
+    strcpy(queryToUse, query);
+
+    return queryToUse;
+}
+
+static char* createSearchLibroByEditorialQuery(Data data, char* queryToUse){
+    char query[BUFSIZ];
+    sprintf(query, "SELECT * FROM Catalogo WHERE Editorial = '%s';", getArgumentSearch(data));
+
+    printf("\nQUERY:\n %s\n", query);
+    strcpy(queryToUse, query);
+
+    return queryToUse;
+}
+
+static char* createSearchLibroByNumEjemplaresQuery(Data data, char* queryToUse){
+    char query[BUFSIZ];
+    sprintf(query, "SELECT * FROM Catalogo WHERE Num_ejemplares = %s;", getArgumentSearch(data));
+
+    printf("\nQUERY:\n %s\n", query);
+    strcpy(queryToUse, query);
+
+    return queryToUse;
+}
+
+
+static char* createRentQuery(Data data, User user, char* queryToUse){
+
+    char query[BUFSIZ];
+    sprintf(query, "CALL rentaLibro(%d, %s, %s);", getId(user), getArgumentInsert(data, 0), getArgumentInsert(data, 1));
+
+    printf("\nQUERY:\n %s\n", query);
+    strcpy(queryToUse, query);
+
+    return queryToUse;
+
 }
