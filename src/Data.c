@@ -130,7 +130,6 @@ ERROR_CODE setbdData(Data data, char** newData, uint8_t indexRows, uint8_t numCo
           
             data->bdData[indexRows][i] = calloc(strlen(newData[i]), sizeof(char));
             data->bdData[indexRows][i] = strdup(newData[i]);
-            printf("%s || ", data->bdData[indexRows][i]);
         }
             
         
