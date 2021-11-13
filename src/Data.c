@@ -209,7 +209,6 @@ ERROR_CODE setArgumentInsert(Data data, const char* newArgumentInsert, uint8_t i
     data->argumentsInsert[index] = calloc(strlen(newArgumentInsert), sizeof(char));
     data->argumentsInsert[index] = strdup(newArgumentInsert);
 
-    printf("\nNEW DATA INSERT : %s\n", data->argumentsInsert[index]);
     return ERROR_OK;
 }
 

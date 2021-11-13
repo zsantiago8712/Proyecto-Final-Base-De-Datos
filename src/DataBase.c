@@ -134,7 +134,6 @@ ERROR_CODE login(DataBase dataBase, User user){
 
     }
     
-    printf("USER ID: %d\n", getId(user));
     while(mysql_next_result(dataBase->connection) == 0)
         
     
@@ -162,7 +161,6 @@ ERROR_CODE getAllUsers(DataBase dataBase, Data data){
         
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
-        printf("\nROWS: %d || COLUMNS: %d\n", numRows, numColumns);
 
         if(numRows >= getNumRows(data) - 1)
             reallocBdDataRows(data);
@@ -202,7 +200,6 @@ ERROR_CODE getAllLibros(DataBase dataBase, Data data){
         
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
-        printf("\nROWS: %d || COLUMNS: %d\n", numRows, numColumns);
 
         if(numRows >= getNumRows(data) - 1)
             reallocBdDataRows(data);
@@ -240,7 +237,6 @@ ERROR_CODE getAllLibrosRentados(DataBase dataBase, Data data, User user){
         
         numRows = mysql_num_rows(res);
         numColumns = mysql_num_fields(res);
-        printf("\nROWS: %d || COLUMNS: %d\n", numRows, numColumns);
 
         if(numRows >= getNumRows(data) - 1)
             reallocBdDataRows(data);
@@ -317,7 +313,6 @@ ERROR_CODE addUserToDB(DataBase dataBase, Data data){
     if(sendQuery(dataBase, query) == ERROR_QUERY)
         return ERROR_QUERY;
 
-    printf("ADD USER SUCCESSFULLY\n");
     return ERROR_OK;
 }
 
@@ -386,7 +381,6 @@ static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
 
         setbdData(data, row, indexRows, numColumns);
 
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++; 
     }
 
@@ -414,8 +408,6 @@ static ERROR_CODE getUsersById(DataBase dataBase, Data data){
     
     if(sendQuery(dataBase, query) == ERROR_QUERY)
         return ERROR_QUERY;
-
-    puts("SEARCH BY ID");
     
     
     res = mysql_use_result(dataBase->connection);
@@ -438,7 +430,6 @@ static ERROR_CODE getUsersById(DataBase dataBase, Data data){
 
         setbdData(data, row, indexRows, numColumns);
 
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++;        
     }
 
@@ -485,7 +476,6 @@ static ERROR_CODE getUserByCarrera(DataBase dataBase, Data data){
         }
 
         setbdData(data, row, indexRows, numColumns);
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++;        
     }
 
@@ -536,7 +526,6 @@ static ERROR_CODE getUserByNombreLibro(DataBase dataBase, Data data){
 
         setbdData(data, row, indexRows, numColumns);
 
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++;        
     }
 
@@ -586,7 +575,6 @@ static ERROR_CODE getLibroByName(DataBase dataBase, Data data){
 
         setbdData(data, row, indexRows, numColumns);
 
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++; 
     }
 
@@ -638,7 +626,6 @@ static ERROR_CODE getLibrosByIsbn(DataBase dataBase, Data data){
 
         setbdData(data, row, indexRows, numColumns);
 
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++; 
     }
 
@@ -691,7 +678,6 @@ static ERROR_CODE getLibrosByEditorial(DataBase dataBase, Data data){
 
         setbdData(data, row, indexRows, numColumns);
 
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++; 
     }
 
@@ -743,7 +729,6 @@ static ERROR_CODE getLibrosByNumEjemplares(DataBase dataBase, Data data){
 
         setbdData(data, row, indexRows, numColumns);
 
-        printf("ROWS: %d || COLUMNS: %d\n", numRows, numColumns);
         indexRows++; 
     }
 
@@ -769,7 +754,6 @@ static char* createLogginQueery(User user, char* queryToUse){
 
     sprintf(query, "CALL login('%s', '%s');", getCorreo(user), getPassword(user));
     strcpy(queryToUse, query);
-    puts(query);
 
     return queryToUse;
 }
@@ -782,7 +766,6 @@ static char* createSearchUserByNameQuery(Data data, char* queryToUse){
 
     sprintf(query, "CALL searchUserByNombre('%s')", getArgumentSearch(data));
     strcpy(queryToUse, query);
-    puts(queryToUse);
 
     return queryToUse;
 }
@@ -794,7 +777,6 @@ static char* createSearchUserByIdQuery(Data data , char* queryToUse){
 
     sprintf(query, "CALL searchUserByIdCuenta(%s);", getArgumentSearch(data));
     strcpy(queryToUse, query);
-    puts(queryToUse);
 
     return queryToUse;
 }
@@ -806,7 +788,6 @@ static char* createSearchUserByCarreraQuery(Data data , char* queryToUse){
 
     sprintf(query, "CALL searchUserByCarrera('%s');", getArgumentSearch(data));
     strcpy(queryToUse, query);
-    puts(queryToUse);
 
     return queryToUse;
 }
@@ -819,7 +800,6 @@ static char* createSearchUserByNombreLibro(Data data , char* queryToUse){
 
     sprintf(query, "CALL searchUserByNombreLib('%s');", getArgumentSearch(data));
     strcpy(queryToUse, query);
-    puts(queryToUse);
 
     return queryToUse;
 }
@@ -842,8 +822,6 @@ static char* createAddUserQuery(Data data, char* queryToUse){
 
     sprintf(query, "CALL addNewUser(%s, '%s', '%s', '%s', '%s', %s, '%s', '%s', '%s');", getArgumentInsert(data, 0), getArgumentInsert(data, 1), getArgumentInsert(data, 2), getArgumentInsert(data, 3), getArgumentInsert(data, 4), getArgumentInsert(data, 5), getArgumentInsert(data, 6), getArgumentInsert(data, 7), getArgumentInsert(data, 8));
 
-    printf("\nQUERY:\n %s\n", query);
-
     strcpy(queryToUse, query);
     return strdup(query);
 }
@@ -854,7 +832,6 @@ static char* createSearchLibroByNameQuery(Data data, char* queryToUse){
     char query[BUFSIZ];
     sprintf(query, "CALL getLibroByName('%s');", getArgumentSearch(data));
 
-    printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
 
     return queryToUse;
@@ -865,7 +842,6 @@ static char* createSearchLibroByISBNQuery(Data data, char* queryToUse){
     char query[BUFSIZ];
     sprintf(query, "CALL getLibroByIsbn(%s);", getArgumentSearch(data));
 
-    printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
 
     return queryToUse;
@@ -875,9 +851,7 @@ static char* createSearchLibroByEditorialQuery(Data data, char* queryToUse){
     char query[BUFSIZ];
     sprintf(query, "CALL getLibroByEditorial('%s');", getArgumentSearch(data));
 
-    printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
-
     return queryToUse;
 }
 
@@ -885,9 +859,7 @@ static char* createSearchLibroByNumEjemplaresQuery(Data data, char* queryToUse){
     char query[BUFSIZ];
     sprintf(query, "CALL getLibroByNumeroEjemplares(%s);", getArgumentSearch(data));
 
-    printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
-
     return queryToUse;
 }
 
@@ -897,11 +869,8 @@ static char* createRentQuery(Data data, User user, char* queryToUse){
     char query[BUFSIZ];
     sprintf(query, "CALL rentaLibro(%d, %s);", getId(user), getArgumentInsert(data, 0));
 
-    printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
-
     return queryToUse;
-
 }
 
 static char* creategetAllLibrosRentadosQuery(User user, char* queryToUse){
@@ -909,11 +878,8 @@ static char* creategetAllLibrosRentadosQuery(User user, char* queryToUse){
     char query[BUFSIZ];
     sprintf(query, "CALL getLibrosPrestados(%d);", getId(user));
 
-    printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
-
     return queryToUse;
-
 }
 
 static char* createDevolucionesQuery(Data data, User user, char* queryToUse){
@@ -921,9 +887,7 @@ static char* createDevolucionesQuery(Data data, User user, char* queryToUse){
     char query[BUFSIZ];
     sprintf(query, "CALL regresarLibro(%s, %d, %s);", getArgumentInsert(data, 0), getId(user), getArgumentInsert(data, 1));
 
-    printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
-
     return queryToUse;
 
 }

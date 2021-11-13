@@ -45,6 +45,9 @@ static void on_changedDevolucion(GtkWidget *widget, gpointer label);
 static ERROR_CODE devolucionAction(GtkButton *boton, gpointer userData);
 static ERROR_CODE validDateDevolucion(const char* dateLimit, const char* dateDevolucion);
 static char* getMonthDayFromDate(const char* date, uint typeDateIsMonth);
+static void changeWindowFromSubMenuDev(GtkButton *boton, gpointer userData);
+static void getAllUserAgain(GtkButton *boton, gpointer userData);
+static void getAllBooksAgain(GtkButton *boton, gpointer userData);
 
 
 struct _Library{
@@ -251,8 +254,8 @@ ERROR_CODE windowMenuPrincipal(Library library){
 ERROR_CODE editUsersWindow(Library library){
     
 
-    GtkWidget *vbox, *hbox, *hbox2, *label, *botonBuscar, *botonAgregarUsr, *sw,
-    *menuBar, *menuBarMenuPrincipal, *menuBarRentarLibro, *menuBarSalir, *opciones, *opcionesLabel, *ayudaLabel, *ayudaMenu, *acercaDeLabel;
+    GtkWidget *vbox, *hbox, *hbox2, *label, *botonBuscar, *botonAgregarUsr, *botonObtenerTodo, *sw,
+    *menuBar, *menuBarMenuPrincipal, *menuBarRentarLibro, *menuBarDevoluciones, *menuBarSalir, *opciones, *opcionesLabel, *ayudaLabel, *ayudaMenu, *acercaDeLabel;
 
     GtkTreeSelection *selection; 
   
@@ -264,6 +267,7 @@ ERROR_CODE editUsersWindow(Library library){
     library->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     library->list = gtk_tree_view_new();
     botonBuscar = gtk_button_new_with_mnemonic("_ENTER");
+    botonObtenerTodo = gtk_button_new_with_mnemonic("_Ver Todos Los Usuarios");
     vbox = gtk_vbox_new(FALSE, 0);
     hbox = gtk_hbox_new(FALSE, 0);
     hbox2 = gtk_hbox_new(FALSE, 0);
@@ -277,6 +281,7 @@ ERROR_CODE editUsersWindow(Library library){
     opciones = gtk_menu_new();
     menuBar = gtk_menu_bar_new();
     menuBarRentarLibro = gtk_image_menu_item_new_with_label("Rentar Libro");
+    menuBarDevoluciones = gtk_image_menu_item_new_with_label("Devolver Libros");
     menuBarMenuPrincipal = gtk_image_menu_item_new_from_stock(GTK_STOCK_HOME, NULL);
     menuBarSalir =  gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT, NULL);
     ayudaLabel = gtk_menu_item_new_with_label("Ayuda");
@@ -310,7 +315,9 @@ ERROR_CODE editUsersWindow(Library library){
     g_signal_connect(G_OBJECT(acercaDeLabel), "activate", G_CALLBACK(ventanaAcercaDe), library);
     g_signal_connect(G_OBJECT(menuBarSalir), "activate", G_CALLBACK(changeWindowFromSubMenuQT), library);
     g_signal_connect(G_OBJECT(menuBarMenuPrincipal), "activate", G_CALLBACK(changeWindowFromSubMenuMP), library);
+    g_signal_connect(G_OBJECT(menuBarDevoluciones), "activate", G_CALLBACK(changeWindowFromSubMenuDev), library);
     g_signal_connect(G_OBJECT(menuBarRentarLibro), "activate", G_CALLBACK(changeWindowFromSubMenuRL), library);
+    g_signal_connect(G_OBJECT(botonObtenerTodo), "clicked", G_CALLBACK(getAllUserAgain), library);
 
 
 
@@ -318,6 +325,7 @@ ERROR_CODE editUsersWindow(Library library){
 
     gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarMenuPrincipal);
     gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarRentarLibro);
+    gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarDevoluciones);
     gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarSalir);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(opcionesLabel), opciones);
     gtk_menu_bar_append(GTK_MENU_BAR(menuBar), opcionesLabel);
@@ -336,6 +344,7 @@ ERROR_CODE editUsersWindow(Library library){
     gtk_box_pack_start(GTK_BOX(hbox), library->searchEntry, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), botonBuscar, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), botonAgregarUsr, FALSE, FALSE, 5);
+     gtk_box_pack_start(GTK_BOX(hbox), botonObtenerTodo, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
     gtk_container_add(GTK_CONTAINER(library->window), vbox);
 
@@ -352,7 +361,7 @@ ERROR_CODE editUsersWindow(Library library){
 ERROR_CODE devolucionesWindow(Library library){
 
     GtkWidget *vbox, *hbox, *hbox2, *botonDevolver, *sw,
-    *menuBar, *menuBarMenuPrincipal, *menuBarRentarLibro, *menuBarSalir, *opciones, *opcionesLabel, *ayudaLabel, *ayudaMenu, *acercaDeLabel;
+    *menuBar, *menuBarMenuPrincipal, *menuBarAgregarUsr, *menuBarRentarLibro, *menuBarSalir, *opciones, *opcionesLabel, *ayudaLabel, *ayudaMenu, *acercaDeLabel;
 
     GtkTreeSelection *selection; 
   
@@ -380,6 +389,7 @@ ERROR_CODE devolucionesWindow(Library library){
     ayudaLabel = gtk_menu_item_new_with_label("Ayuda");
     ayudaMenu = gtk_menu_new(); 
     acercaDeLabel = gtk_menu_item_new_with_label("Acerca de");
+    menuBarAgregarUsr = gtk_image_menu_item_new_with_label("Rentar Libro");
 
     
 
@@ -411,7 +421,12 @@ ERROR_CODE devolucionesWindow(Library library){
 
 
 
-
+    if(getTypeUser(library->user) == ADMIN){
+        menuBarAgregarUsr = gtk_image_menu_item_new_with_label("Agregar Usuario");
+        gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarAgregarUsr);
+        g_signal_connect(G_OBJECT(menuBarAgregarUsr), "activate", G_CALLBACK(changeWindowFromSubMenuAU), library);
+        
+    }
 
     gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarMenuPrincipal);
     gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarRentarLibro);
@@ -444,8 +459,8 @@ ERROR_CODE devolucionesWindow(Library library){
 ERROR_CODE rentarLibro(Library library){
     
 
-    GtkWidget *vbox, *hbox, *hbox2, *label, *botonBuscar, *botonRentar, *sw,
-    *menuBar, *menuBarMenuPrincipal, *menuBarAgregarUsr, *menuBarSalir, *opciones, *opcionesLabel, *ayudaLabel, *ayudaMenu, *acercaDeLabel;
+    GtkWidget *vbox, *hbox, *hbox2, *label, *botonBuscar, *botonRentar, *botonObtenerTodo, *sw,
+    *menuBar, *menuBarMenuPrincipal, *menuBarAgregarUsr, *menuBarDevoluciones, *menuBarSalir, *opciones, *opcionesLabel, *ayudaLabel, *ayudaMenu, *acercaDeLabel;
     
     GtkTreeSelection *selection; 
 
@@ -458,24 +473,26 @@ ERROR_CODE rentarLibro(Library library){
     library->list = gtk_tree_view_new();
     botonBuscar = gtk_button_new_with_mnemonic("_ENTER");
     botonRentar = gtk_button_new_with_mnemonic("_Rentar");
+    botonObtenerTodo = gtk_button_new_with_mnemonic("_Ver Todos Los Libros");
     vbox = gtk_vbox_new(FALSE, 0);
     hbox = gtk_hbox_new(FALSE, 0);
     hbox2 = gtk_hbox_new(FALSE, 0);
     label = gtk_label_new("SEARCH:");
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(library->list));
     library->nextWindow = SALIR;
+    library->searchEntry = gtk_entry_new();
     sw = gtk_scrolled_window_new(NULL, NULL);
     opcionesLabel = gtk_menu_item_new_with_label("Menu");
     opciones = gtk_menu_new();
     menuBar = gtk_menu_bar_new();
     menuBarMenuPrincipal = gtk_image_menu_item_new_from_stock(GTK_STOCK_HOME, NULL);
     menuBarAgregarUsr = gtk_image_menu_item_new_with_label("Rentar Libro");
+    menuBarDevoluciones = gtk_image_menu_item_new_with_label("Devolver Libros");
     menuBarSalir =  gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT, NULL);
     ayudaLabel = gtk_menu_item_new_with_label("Ayuda");
     ayudaMenu = gtk_menu_new(); 
     acercaDeLabel = gtk_menu_item_new_with_label("Acerca de");
 
-    printf("USER TYPE : %d\n", getId(library->user));
     if(getTypeUser(library->user) == ADMIN){
         menuBarAgregarUsr = gtk_image_menu_item_new_with_label("Agregar Usuario");
         gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarAgregarUsr);
@@ -483,6 +500,7 @@ ERROR_CODE rentarLibro(Library library){
         
     }
     gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarMenuPrincipal);
+    gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarDevoluciones);
     gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarSalir);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(opcionesLabel), opciones);
     gtk_menu_bar_append(GTK_MENU_BAR(menuBar), opcionesLabel);
@@ -517,7 +535,9 @@ ERROR_CODE rentarLibro(Library library){
     g_signal_connect(G_OBJECT(acercaDeLabel), "activate", G_CALLBACK(ventanaAcercaDe), library);
     g_signal_connect(G_OBJECT(menuBarSalir), "activate", G_CALLBACK(changeWindowFromSubMenuQT), library);
     g_signal_connect(G_OBJECT(menuBarMenuPrincipal), "activate", G_CALLBACK(changeWindowFromSubMenuMP), library);
-    
+    g_signal_connect(G_OBJECT(menuBarDevoluciones), "activate", G_CALLBACK(changeWindowFromSubMenuDev), library);
+    g_signal_connect(G_OBJECT(botonObtenerTodo), "clicked", G_CALLBACK(getAllBooksAgain), library);
+
 
     
     gtk_container_add(GTK_CONTAINER(sw), library->list);
@@ -525,8 +545,10 @@ ERROR_CODE rentarLibro(Library library){
     gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), sw, TRUE, TRUE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox), library->searchEntry, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), botonBuscar, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), botonRentar, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox), botonObtenerTodo, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
     gtk_container_add(GTK_CONTAINER(library->window), vbox);
 
@@ -792,7 +814,6 @@ static ERROR_CODE setTypeAdmin(GtkWidget *widget, gpointer userData){
     
     Library library = (Library) userData;  
     library->typeUser = ADMIN;
-    printf("\nTYPE USER ADMIN: %d", library->typeUser);
 
     return ERROR_OK;
 }
@@ -802,8 +823,6 @@ static ERROR_CODE setTypeClient(GtkWidget *widget, gpointer userData){
     
     Library library = (Library) userData;  
     library->typeUser = CLIENT;
-
-    printf("\nTYPE USER CLIENT: %d", library->typeUser);
 
     return ERROR_OK;
 }
@@ -815,13 +834,11 @@ static ERROR_CODE setFechaNacimientoFromCalendar(GtkWidget *widget, gpointer use
     char date[20];
 
     gtk_calendar_get_date(GTK_CALENDAR(library->fechaNacimientoEntry), &year, &month, &day);
-    printf("\nDAY: %d | MONTH: %d | YEAR: %d\n", day, month, year);
 
 
     sprintf(date, "%d/%d/%d", year, month, day);
 
     setArgumentInsert(library->data, date, 8);
-    printf("\nDATE: %s\n", getArgumentInsert(library->data, 8));
 
     return ERROR_OK;    
 }
@@ -831,19 +848,15 @@ static ERRORS_ENTRY saveNewUser(GtkWidget *widget, gpointer userData){
 
     Library library = (Library) userData; 
     
-    printf("TYPE USER %d\n", library->typeUser);
     if(library->typeUser == ADMIN)
         setArgumentInsert(library->data, "TRUE", 0);
     else
         setArgumentInsert(library->data, "FALSE", 0);
     
 
-    printf("\n%s\n", getArgumentInsert(library->data, 0));
 
-    if(validateNameField(gtk_entry_get_text(GTK_ENTRY(library->nombreEntry))) == OK){
+    if(validateNameField(gtk_entry_get_text(GTK_ENTRY(library->nombreEntry))) == OK)
         setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->nombreEntry)), 1);
-        printf("\n%s\n",getArgumentInsert(library->data, 1));
-    }
     else{
         clearDataInsert(library->data);
         return ERROR_FIELDS;
@@ -851,10 +864,9 @@ static ERRORS_ENTRY saveNewUser(GtkWidget *widget, gpointer userData){
        
 
 
-    if(validateApellidoPatField(gtk_entry_get_text(GTK_ENTRY(library->apelidoPatEntry))) == OK){
+    if(validateApellidoPatField(gtk_entry_get_text(GTK_ENTRY(library->apelidoPatEntry))) == OK)
         setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->apelidoPatEntry)), 2);
-        printf("\n%s\n",getArgumentInsert(library->data, 2));
-    }
+    
     else{
         clearDataInsert(library->data);
         return ERROR_FIELDS;
@@ -864,50 +876,39 @@ static ERRORS_ENTRY saveNewUser(GtkWidget *widget, gpointer userData){
     
     
     
-    if(validateApellidoMatField(gtk_entry_get_text(GTK_ENTRY(library->apellidoMatEntry))) == OK){
+    if(validateApellidoMatField(gtk_entry_get_text(GTK_ENTRY(library->apellidoMatEntry))) == OK)
         setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->apellidoMatEntry)), 3);  
-        printf("\n%s\n",getArgumentInsert(library->data, 3));
-    }
-    else{
+    else
         setArgumentInsert(library->data, "NULL", 3);
-        printf("\n%s\n",getArgumentInsert(library->data, 3));
-    }
+    
     
 
     
-    if(validateCarreraField(gtk_entry_get_text(GTK_ENTRY(library->carreraEntry))) == OK){
+    if(validateCarreraField(gtk_entry_get_text(GTK_ENTRY(library->carreraEntry))) == OK)
         setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->carreraEntry)), 4);  
-        printf("\n%s\n",getArgumentInsert(library->data, 4));
-    }
-    else{
+    else
         setArgumentInsert(library->data, "NULL", 4);
-        printf("\n%s\n",getArgumentInsert(library->data, 4));
-    }
+    
 
     
-    if(validateSemestreField(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(library->semestreEntry))) == OK){
+    if(validateSemestreField(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(library->semestreEntry))) == OK)
         setArgumentInsert(library->data, convertSemestreToString(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(library->semestreEntry))), 5);
-        printf("\n%s\n",getArgumentInsert(library->data, 5));
-    }
-    else{
+    else
         setArgumentInsert(library->data, "NULL", 5);
-        printf("\n%s\n",getArgumentInsert(library->data, 5));
-    }
+    
         
 
-    if(validateCorreoField(gtk_entry_get_text(GTK_ENTRY(library->correoEntry))) == OK){
+    if(validateCorreoField(gtk_entry_get_text(GTK_ENTRY(library->correoEntry))) == OK)
         setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->correoEntry)), 6);
-        printf("\n%s\n",getArgumentInsert(library->data, 6));
-    }else{
+    else{
         clearDataInsert(library->data); 
         return ERROR_FIELDS;
     }
 
 
-    if(validatePasswordField(gtk_entry_get_text(GTK_ENTRY(library->passwordEntry))) == OK){
+    if(validatePasswordField(gtk_entry_get_text(GTK_ENTRY(library->passwordEntry))) == OK)
         setArgumentInsert(library->data, gtk_entry_get_text(GTK_ENTRY(library->passwordEntry)), 7);
-        printf("\n%s\n",getArgumentInsert(library->data, 7));
-    }else{
+    else{
         clearDataInsert(library->data); 
         return ERROR_FIELDS;
     }
@@ -1029,10 +1030,9 @@ static ERRORS_ENTRY validatePasswordField(const char* entryToValidate){
 
 static ERROR_CODE validateEmptyFileds(const char* strintToValiidate){
 
-    if(strlen(strintToValiidate) == 0){
-        printf("ERROR EMPTY FIELDS: %d\n", EMPTY_STRING);
+    if(strlen(strintToValiidate) == 0)
         return EMPTY_STRING;
-    }
+    
 
     return ERROR_OK;
 }
@@ -1047,10 +1047,9 @@ static ERRORS_ENTRY validateEmail(const char* correo){
 
     for(int i = 0; i < strlen(correo); i++){
         
-        if(correo[i] == '@' && i == 0){
-            printf("ERROR INVALID EMAIL: %d\n", INVALID_EMAIL);
+        if(correo[i] == '@' && i == 0)
             return INVALID_EMAIL;
-        }
+        
             
 
         else if(correo[i] == '@' || isCorreo){
@@ -1068,7 +1067,6 @@ static ERRORS_ENTRY validateEmail(const char* correo){
             return OK;
     }
 
-    printf("ERROR INVALID EMAIL: %d\n", INVALID_EMAIL);
     return INVALID_EMAIL;
 }
 
@@ -1330,7 +1328,6 @@ static void on_changed(GtkWidget *widget, gpointer label) {
   if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(widget), &model, &iter)) {
 
     gtk_tree_model_get(model, &iter, 0, &value,  -1);
-    puts(value);
     gtk_label_set_text(GTK_LABEL(label), value);
     g_free(value);
   }
@@ -1354,8 +1351,6 @@ static void on_changedRentar(GtkWidget *widget, gpointer label) {
         setArgumentInsert(library->data, isbn, 0);
         setArgumentInsert(library->data, numEjemplares, 1);
 
-        puts(isbn);
-        puts(numEjemplares);
         g_free(isbn);
         g_free(numEjemplares);
         
@@ -1438,8 +1433,6 @@ static ERROR_CODE rentarLibroAction(GtkButton *boton, gpointer userData){
     Library library = (Library) userData;
     uint8_t numEjemplares;
 
-    printf("ISBN : -> %s\n", getArgumentInsert(library->data, 0));
-    printf("NUM EJEMPLARES : -> %s\n", getArgumentInsert(library->data, 1));
 
     numEjemplares = atoi(getArgumentInsert(library->data, 1));
     if(numEjemplares == 0){
@@ -1585,10 +1578,19 @@ static void changeWindowFromSubMenuQT(GtkButton *boton, gpointer userData){
 }
 
 static void changeWindowFromSubMenuAU(GtkButton *boton, gpointer userData){
+    
     Library library = (Library) userData;
     clearData(library->data);
     clearDataInsert(library->data);
     getNextWindow(library, EDIT_USERS);
+}
+
+static void changeWindowFromSubMenuDev(GtkButton *boton, gpointer userData){
+    
+    Library library = (Library) userData;
+    clearData(library->data);
+    clearDataInsert(library->data);
+    getNextWindow(library, DEVOLUCIONES);
 }
 
 static ERROR_CODE validDateDevolucion(const char* dateLimit, const char* dateDevolucion){
@@ -1640,6 +1642,23 @@ static char* getMonthDayFromDate(const char* date, uint typeDateIsMonth){
         }
     }
     
-    puts(newDate);
     return strdup(newDate);
+}
+
+static void getAllBooksAgain(GtkButton *boton, gpointer userData){
+
+    Library library = (Library) userData;
+   
+    clearData(library->data);
+    getAllLibros(library->dataBase, library->data);
+    updateList(library, BOOKS);
+}
+
+static void getAllUserAgain(GtkButton *boton, gpointer userData){
+
+    Library library = (Library) userData;
+
+    clearData(library->data);
+    getAllUsers(library->dataBase, library->data);
+    updateList(library, USERS);
 }
