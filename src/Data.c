@@ -124,8 +124,8 @@ ERROR_CODE setbdData(Data data, char** newData, uint8_t indexRows, uint8_t numCo
     for(int i = 0; i < numColumns; i++){
 
         if(!newData[i]){
-            data->bdData[indexRows][i] = calloc(strlen("null"), sizeof(char));
-            data->bdData[indexRows][i] = strdup("null");
+            data->bdData[indexRows][i] = calloc(strlen("NULL"), sizeof(char));
+            data->bdData[indexRows][i] = strdup("NULL");
         }else{
           
             data->bdData[indexRows][i] = calloc(strlen(newData[i]), sizeof(char));
@@ -209,7 +209,7 @@ ERROR_CODE setArgumentInsert(Data data, const char* newArgumentInsert, uint8_t i
     data->argumentsInsert[index] = calloc(strlen(newArgumentInsert), sizeof(char));
     data->argumentsInsert[index] = strdup(newArgumentInsert);
 
-    printf("NEW DATA INSERT : %s", data->argumentsInsert[index]);
+    printf("\nNEW DATA INSERT : %s\n", data->argumentsInsert[index]);
     return ERROR_OK;
 }
 

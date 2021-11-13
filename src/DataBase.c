@@ -23,6 +23,8 @@ static ERROR_CODE getLibrosByIsbn(DataBase dataBase, Data data);
 static ERROR_CODE getLibrosByEditorial(DataBase dataBase, Data data);
 static ERROR_CODE getLibrosByNumEjemplares(DataBase dataBase, Data data);
 static char* createRentQuery(Data data, User user, char* queryToUse);
+static char* createDevolucionesQuery(Data data, User user, char* queryToUse);
+static char* creategetAllLibrosRentadosQuery(User user, char* queryToUse);
 
 
 struct _DataBase{
@@ -88,18 +90,23 @@ ERROR_CODE login(DataBase dataBase, User user){
     MYSQL_RES* res;
     MYSQL_ROW row;
     
-
+    uint8_t isData = 0;
     char query[BUFSIZ];
     createLogginQueery(user, query);
 
-    sendQuery(dataBase, query);
+    if(sendQuery(dataBase, query) == ERROR_QUERY){
+        puts("USER NOT FOUND");
+        return EMPTY_SET;
+    }
+       
     
     res = mysql_use_result(dataBase->connection);
     
    
-    row = mysql_fetch_row(res);
-    if(row != NULL){
+    
+    while((row = mysql_fetch_row(res))!= NULL){
         
+        isData = 1;
         setId(user, row[0]);
         setTypeUser(user, row[1]);
         setNombre(user, row[2]);
@@ -125,14 +132,16 @@ ERROR_CODE login(DataBase dataBase, User user){
         setFechaNacimiento(user, row[8]);
         setPassword(user, row[9]);
 
-    }else{
-        printf("ERROR: %d USER NOT FOUND\n", USER_NOT_FOUND);
-        mysql_free_result(res);
-        return EMPTY_SET;
     }
-
     
-    mysql_free_result(res);     
+    printf("USER ID: %d\n", getId(user));
+    while(mysql_next_result(dataBase->connection) == 0)
+        
+    
+    mysql_free_result(res);    
+
+    if(!isData)
+        return EMPTY_SET; 
     return ERROR_OK;
 }
 
@@ -142,7 +151,7 @@ ERROR_CODE getAllUsers(DataBase dataBase, Data data){
     MYSQL_RES* res;
     MYSQL_ROW row;
     uint8_t numRows = 0, numColumns = 0, indexRows = 0;
-    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios;";
+    char query[BUFSIZ] = "CALL getAllUsers();";
 
     
     sendQuery(dataBase, query);
@@ -160,13 +169,17 @@ ERROR_CODE getAllUsers(DataBase dataBase, Data data){
         
             
        
-        setbdData(data, row, indexRows, 10);
+        setbdData(data, row, indexRows, numColumns);
         
         indexRows++;        
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
+
     mysql_free_result(res);
+    
     
     return ERROR_OK;
 }
@@ -177,10 +190,11 @@ ERROR_CODE getAllLibros(DataBase dataBase, Data data){
     MYSQL_RES* res;
     MYSQL_ROW row;
     uint8_t numRows = 0, numColumns = 0, indexRows = 0;
-    char query[BUFSIZ] = "SELECT * FROM Catalogo;";
+    char query[BUFSIZ] = "CALL getAllLibros();";
 
     
-    sendQuery(dataBase, query);
+    if(sendQuery(dataBase, query) == EMPTY_SET)
+        return EMPTY_SET;
     
     res = mysql_use_result(dataBase->connection);
     
@@ -200,12 +214,51 @@ ERROR_CODE getAllLibros(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
     mysql_free_result(res);
     
     return ERROR_OK;
 
 }
 
+ERROR_CODE getAllLibrosRentados(DataBase dataBase, Data data, User user){
+
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    uint8_t numRows = 0, numColumns = 0, indexRows = 0;
+    char query[BUFSIZ];
+
+    creategetAllLibrosRentadosQuery(user, query);
+    
+    if(sendQuery(dataBase, query) == EMPTY_SET)
+        return EMPTY_SET;
+    
+    res = mysql_use_result(dataBase->connection);
+    
+    while ((row = mysql_fetch_row(res)) != NULL){
+        
+        numRows = mysql_num_rows(res);
+        numColumns = mysql_num_fields(res);
+        printf("\nROWS: %d || COLUMNS: %d\n", numRows, numColumns);
+
+        if(numRows >= getNumRows(data) - 1)
+            reallocBdDataRows(data);
+        
+            
+       
+        setbdData(data, row, indexRows, numColumns);
+        indexRows++;        
+    }
+
+    setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
+
+    mysql_free_result(res);
+    
+    return ERROR_OK;
+}
 
 ERROR_CODE searchUser(DataBase dataBase, Data data){
 
@@ -281,6 +334,20 @@ ERROR_CODE addRenta(DataBase dataBase, Data data, User user){
     return ERROR_OK;
 }
 
+
+ERROR_CODE devoluciones(DataBase dataBase, Data data, User user){
+
+    char query[BUFSIZ];
+    createDevolucionesQuery(data, user, query);
+
+    if(sendQuery(dataBase, query) == ERROR_QUERY)
+        return ERROR_QUERY;
+    
+    puts("Devolucino SUCCESSFULLY");
+    return ERROR_OK;
+
+}
+
 // SATICS
 static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
 
@@ -292,8 +359,10 @@ static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
     createSearchUserByNameQuery(data, query);
     
     
-    if(sendQuery(dataBase, query) == ERROR_QUERY)
+    if(sendQuery(dataBase, query) == ERROR_QUERY){
         return ERROR_QUERY;
+    }
+       
 
 
     res = mysql_use_result(dataBase->connection);
@@ -322,7 +391,10 @@ static ERROR_CODE getUsersByName(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
     mysql_free_result(res);
+
     if(!isData)
         return EMPTY_SET;
 
@@ -371,7 +443,10 @@ static ERROR_CODE getUsersById(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
     mysql_free_result(res);
+
     if(!isData)
         return EMPTY_SET;
 
@@ -415,6 +490,8 @@ static ERROR_CODE getUserByCarrera(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
     mysql_free_result(res);
 
     if(!isData)
@@ -464,6 +541,8 @@ static ERROR_CODE getUserByNombreLibro(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+    while (mysql_next_result(dataBase->connection) == 0)
+
     mysql_free_result(res);
     if(!isData)
         return EMPTY_SET;
@@ -512,6 +591,8 @@ static ERROR_CODE getLibroByName(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
     mysql_free_result(res);
     if(!isData)
         return EMPTY_SET;
@@ -562,6 +643,8 @@ static ERROR_CODE getLibrosByIsbn(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
     mysql_free_result(res);
     if(!isData)
         return EMPTY_SET;
@@ -613,6 +696,8 @@ static ERROR_CODE getLibrosByEditorial(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
     mysql_free_result(res);
     if(!isData)
         return EMPTY_SET;
@@ -663,7 +748,10 @@ static ERROR_CODE getLibrosByNumEjemplares(DataBase dataBase, Data data){
     }
 
     setDataRows(data, numRows);
+
+    while (mysql_next_result(dataBase->connection) == 0)
     mysql_free_result(res);
+    
     if(!isData)
         return EMPTY_SET;
 
@@ -677,15 +765,12 @@ static ERROR_CODE getLibrosByNumEjemplares(DataBase dataBase, Data data){
 //QUERYS
 static char* createLogginQueery(User user, char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre,Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Correo='";
+    char query[BUFSIZ];
 
-    strcat(query, getCorreo(user));
-    strcat(query, "' AND (AES_DECRYPT(Password, 'AES'))='");
-    strcat(query, getPassword(user));
-    strcat(query, "';");
-
-    printf("QUERY: %s\n", query);
+    sprintf(query, "CALL login('%s', '%s');", getCorreo(user), getPassword(user));
     strcpy(queryToUse, query);
+    puts(query);
+
     return queryToUse;
 }
 
@@ -693,37 +778,36 @@ static char* createLogginQueery(User user, char* queryToUse){
 
 static char* createSearchUserByNameQuery(Data data, char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Nombre = '";
-    strcat(query, getArgumentSearch(data));
-    strcat(query, "';");
+    char query[BUFSIZ];
 
+    sprintf(query, "CALL searchUserByNombre('%s')", getArgumentSearch(data));
     strcpy(queryToUse, query);
     puts(queryToUse);
+
     return queryToUse;
 }
 
 
 static char* createSearchUserByIdQuery(Data data , char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Id_cuenta = ";
-    strcat(query, getArgumentSearch(data));
-    strcat(query, ";");
-    
-    
+    char query[BUFSIZ];
+
+    sprintf(query, "CALL searchUserByIdCuenta(%s);", getArgumentSearch(data));
     strcpy(queryToUse, query);
     puts(queryToUse);
+
     return queryToUse;
 }
 
 
 static char* createSearchUserByCarreraQuery(Data data , char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios WHERE Carrera = '";
-    strcat(query, getArgumentSearch(data));
-    strcat(query, "';");
-    
+    char query[BUFSIZ];
+
+    sprintf(query, "CALL searchUserByCarrera('%s');", getArgumentSearch(data));
     strcpy(queryToUse, query);
     puts(queryToUse);
+
     return queryToUse;
 }
 
@@ -731,11 +815,12 @@ static char* createSearchUserByCarreraQuery(Data data , char* queryToUse){
 
 static char* createSearchUserByNombreLibro(Data data , char* queryToUse){
 
-    char query[BUFSIZ] = "SELECT USR.Id_cuenta, User_type, Nombre, Ap_pat, Ap_mat, Carrera, Correo, Semestre, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password FROM Usuarios AS USR, Sistema_prestamos AS SP,  Catalogo AS C  WHERE C.Nombre_lb = '";
-    strcat(query, getArgumentSearch(data));
-    strcat(query, "' AND C.Isbn = SP.Isbn AND SP.Id_cuenta = USR.Id_cuenta;");
-    
+    char query[BUFSIZ];
+
+    sprintf(query, "CALL searchUserByNombreLib('%s');", getArgumentSearch(data));
     strcpy(queryToUse, query);
+    puts(queryToUse);
+
     return queryToUse;
 }
 
@@ -755,7 +840,7 @@ static char* createAddUserQuery(Data data, char* queryToUse){
 
     char query[BUFSIZ];
 
-    sprintf(query, "INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) VALUES(%s, '%s', '%s', '%s', '%s', %s, '%s', AES_ENCRYPT('%s', 'AES'), '%s');", getArgumentInsert(data, 0), getArgumentInsert(data, 1), getArgumentInsert(data, 2), getArgumentInsert(data, 3), getArgumentInsert(data, 4), getArgumentInsert(data, 5), getArgumentInsert(data, 6), getArgumentInsert(data, 7), getArgumentInsert(data, 8));
+    sprintf(query, "CALL addNewUser(%s, '%s', '%s', '%s', '%s', %s, '%s', '%s', '%s');", getArgumentInsert(data, 0), getArgumentInsert(data, 1), getArgumentInsert(data, 2), getArgumentInsert(data, 3), getArgumentInsert(data, 4), getArgumentInsert(data, 5), getArgumentInsert(data, 6), getArgumentInsert(data, 7), getArgumentInsert(data, 8));
 
     printf("\nQUERY:\n %s\n", query);
 
@@ -767,7 +852,7 @@ static char* createAddUserQuery(Data data, char* queryToUse){
 
 static char* createSearchLibroByNameQuery(Data data, char* queryToUse){
     char query[BUFSIZ];
-    sprintf(query, "SELECT * FROM Catalogo WHERE Nombre_lb = '%s';", getArgumentSearch(data));
+    sprintf(query, "CALL getLibroByName('%s');", getArgumentSearch(data));
 
     printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
@@ -778,7 +863,7 @@ static char* createSearchLibroByNameQuery(Data data, char* queryToUse){
 
 static char* createSearchLibroByISBNQuery(Data data, char* queryToUse){
     char query[BUFSIZ];
-    sprintf(query, "SELECT * FROM Catalogo WHERE Isbn = %s;", getArgumentSearch(data));
+    sprintf(query, "CALL getLibroByIsbn(%s);", getArgumentSearch(data));
 
     printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
@@ -788,7 +873,7 @@ static char* createSearchLibroByISBNQuery(Data data, char* queryToUse){
 
 static char* createSearchLibroByEditorialQuery(Data data, char* queryToUse){
     char query[BUFSIZ];
-    sprintf(query, "SELECT * FROM Catalogo WHERE Editorial = '%s';", getArgumentSearch(data));
+    sprintf(query, "CALL getLibroByEditorial('%s');", getArgumentSearch(data));
 
     printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
@@ -798,7 +883,7 @@ static char* createSearchLibroByEditorialQuery(Data data, char* queryToUse){
 
 static char* createSearchLibroByNumEjemplaresQuery(Data data, char* queryToUse){
     char query[BUFSIZ];
-    sprintf(query, "SELECT * FROM Catalogo WHERE Num_ejemplares = %s;", getArgumentSearch(data));
+    sprintf(query, "CALL getLibroByNumeroEjemplares(%s);", getArgumentSearch(data));
 
     printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);
@@ -810,7 +895,31 @@ static char* createSearchLibroByNumEjemplaresQuery(Data data, char* queryToUse){
 static char* createRentQuery(Data data, User user, char* queryToUse){
 
     char query[BUFSIZ];
-    sprintf(query, "CALL rentaLibro(%d, %s, %s);", getId(user), getArgumentInsert(data, 0), getArgumentInsert(data, 1));
+    sprintf(query, "CALL rentaLibro(%d, %s);", getId(user), getArgumentInsert(data, 0));
+
+    printf("\nQUERY:\n %s\n", query);
+    strcpy(queryToUse, query);
+
+    return queryToUse;
+
+}
+
+static char* creategetAllLibrosRentadosQuery(User user, char* queryToUse){
+
+    char query[BUFSIZ];
+    sprintf(query, "CALL getLibrosPrestados(%d);", getId(user));
+
+    printf("\nQUERY:\n %s\n", query);
+    strcpy(queryToUse, query);
+
+    return queryToUse;
+
+}
+
+static char* createDevolucionesQuery(Data data, User user, char* queryToUse){
+
+    char query[BUFSIZ];
+    sprintf(query, "CALL regresarLibro(%s, %d, %s);", getArgumentInsert(data, 0), getId(user), getArgumentInsert(data, 1));
 
     printf("\nQUERY:\n %s\n", query);
     strcpy(queryToUse, query);

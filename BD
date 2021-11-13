@@ -34,10 +34,21 @@ CREATE TABLE Sistema_prestamos(
     FOREIGN KEY (Id_cuenta) REFERENCES Usuarios(Id_cuenta) ON DELETE CASCADE,
     FOREIGN KEY (Isbn) REFERENCES Catalogo(Isbn) ON DELETE CASCADE,
     Fecha_solicitud date not null,
-    Fecha_regreso date not null    
+    Fecha_regreso date not null,
+    Devuelto boolean NOT NULL    
 );
 
-
+// Sistema de Devoluciones
+CREATE TABLE Sistema_devoluciones(
+    Id_devolucion INT AUTO_INCREMENT PRIMARY KEY, 
+    Id_prestamo INT NOT NULL,
+    Id_cuenta INT NOT NULL,
+    Isbn INT NOT NULL, 
+    FOREIGN KEY (Id_prestamo) REFERENCES Sistema_prestamos(Id_prestamo) ON DELETE CASCADE,
+    FOREIGN KEY (Id_cuenta) REFERENCES Usuarios(Id_cuenta) ON DELETE CASCADE,
+    FOREIGN KEY (Isbn) REFERENCES Catalogo(Isbn) ON DELETE CASCADE,
+    Fecha_devolucion DATE NOT NULL
+);
 
 
 //Inserccion
@@ -77,6 +88,7 @@ INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('Hernesto','Li
 INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('El Mar Rojo','Pinguino',15);
 INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('La Trajinera','NobelasYmas',6);
 INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('Nobles','LibrosLib',12);
+INSERT INTO Catalogo(Nombre_lb, Editorial, Num_ejemplares) VALUES('The Witcher','LibrosLib',1);
 
 
     // Prestamos
@@ -105,6 +117,21 @@ SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_
 
 // BORRAR ROW
 DELETE FROM Usuarios WHERE Id_cuenta = 11;
+DELETE FROM Sistema_prestamos WHERE Id_prestamo = 1;
+
+
+
+SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_regreso FROM Catalogo AS C LEFT JOIN Sistema_prestamos AS SP LEFT JOIN Usuarios AS USR;
+
+SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_regreso FROM Usuarios USR 
+LEFT JOIN Sistema_prestamos SP ON USR.Id_cuenta = SP.Id_cuenta
+LEFT JOIN Catalogo C on SP.Isbn = C.Isbn;
+
+
+
+
+
+SELECT * FROM Catalogo C LEFT JOIN Sistema_prestamos SP ON C.Isbn = SP.Isbn;
 
 
 
@@ -119,30 +146,6 @@ SELECT *, (AES_DECRYPT(Password, 'AES')) AS Password_Recuperado FROM Usuarios;
 //Agregar columna
 ALTER TABLE Users ADD COLUMN password varchar(50) NOT NULL;
 
-//Fuinciones
-
-DELIMITER $$
-CREATE FUNCTION loggin(correo_table varchar(100), correo_login varchar(100), password_table varchar(16), password_login varchar(16))
-RETURNS boolean
-
-BEGIN
-    DECLARE user_found boolean;
-
-    IF correo_login = correo_login THEN
-        IF password_table = password_login THEN
-            SET user_found = TRUE;
-        ELSE
-            SET user_found = FALSE;
-        END IF;
-    ELSE
-        SET user_found = FALSE;
-    END IF;
-
-    RETURN user_found;
-END$$
-
-DELIMITER;
-
 
 INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo, Password, F_nacimiento) 
             VALUES(FALSE, 'Dany', 'gamo', 'mm', 'Derecho', 5, 'dany@yahoo.com', AES_ENCRYPT('Dany', 'AES'), '2021/10/9');
@@ -151,14 +154,281 @@ INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Corre
 INSERT INTO Sistema_prestamos(Id_cuenta, Isbn, Fecha_solicitud, Fecha_regreso) VALUES('idUsuario', 'ISBN', now(), DATE_ADD(now(), INTERVAL 8 DAY));
 
 
+
+
+////////////////// *************FUNCIONES*************//////////////////
+
+// LOGIN
+CALL login('admin@yahoo.com', 'admin');
+
 DELIMITER $$
-CREATE PROCEDURE rentaLibro(Id_cuentaToSet INT, IsbnToSet INT, Num_ejemplaresToSet INT) 
+CREATE PROCEDURE login(correoToSearch VARCHAR(100), passwordToSearch VARCHAR(100)) 
 
 BEGIN 
 
-INSERT INTO Sistema_prestamos(Id_cuenta, Isbn, Fecha_solicitud, Fecha_regreso) VALUES(Id_cuentaToSet, IsbnToSet, now(), DATE_ADD(now(), INTERVAL 8 DAY));
-UPDATE Catalogo SET Num_ejemplares = Num_ejemplaresToSet - 1 WHERE Isbn = IsbnToSet;
+SELECT Id_cuenta, User_type, Nombre,Ap_pat, Ap_mat, Carrera, Semestre, Correo, F_nacimiento, (AES_DECRYPT(Password, 'AES')) AS Password 
+FROM Usuarios WHERE Correo = correoToSearch AND (AES_DECRYPT(Password, 'AES')) = passwordToSearch;
+
 
 END$$ 
 
 DELIMITER;
+
+
+
+//FUNCNOIES USUARIOS
+
+    //FUNCIION PARA SOLICITAR LA RENTA DE UN LIBRO
+CALL rentaLibro(1, 1);
+
+DELIMITER $$
+CREATE PROCEDURE rentaLibro(Id_cuentaToSet INT, IsbnToSet INT) 
+
+BEGIN 
+
+INSERT INTO Sistema_prestamos(Id_cuenta, Isbn, Fecha_solicitud, Fecha_regreso, Devuelto) VALUES(Id_cuentaToSet, IsbnToSet, now(), DATE_ADD(now(), INTERVAL 8 DAY), FALSE);
+UPDATE Catalogo SET Num_ejemplares = Num_ejemplares - 1 WHERE Isbn = IsbnToSet;
+
+
+
+END$$ 
+
+DELIMITER ;
+
+
+
+    // FUNCION PARA OBTENR DATOS DE TODOS LOS Usuarios
+CALL getAllUsers();
+DELIMITER $$
+CREATE PROCEDURE getAllUsers() 
+
+BEGIN 
+
+SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_regreso FROM Usuarios USR 
+LEFT JOIN Sistema_prestamos SP ON USR.Id_cuenta = SP.Id_cuenta
+LEFT JOIN Catalogo C on SP.Isbn = C.Isbn;
+
+END$$
+
+
+
+    //FUNCION PARA BUSCAR USARIO POR NOMBRE
+CALL searchUserByNombre('Jaime');
+DELIMITER $$
+
+CREATE PROCEDURE searchUserByNombre(NombreToSearch VARCHAR(255)) 
+
+BEGIN
+
+SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_regreso FROM Usuarios USR 
+LEFT JOIN Sistema_prestamos SP ON USR.Id_cuenta = SP.Id_cuenta
+LEFT JOIN Catalogo C on SP.Isbn = C.Isbn WHERE USR.Nombre = NombreToSearch;
+
+END$$
+
+DELIMITER;
+
+
+// FUNCION PARA BUSCAR USARIO POR ID CUENTA
+
+CALL searchUserByIdCuenta(1);
+DELIMITER $$
+
+CREATE PROCEDURE searchUserByIdCuenta(IdCuentaToSearch INT) 
+
+BEGIN
+
+SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_regreso FROM Usuarios USR 
+LEFT JOIN Sistema_prestamos SP ON USR.Id_cuenta = SP.Id_cuenta
+LEFT JOIN Catalogo C on SP.Isbn = C.Isbn WHERE USR.Id_cuenta = IdCuentaToSearch;
+
+END$$
+
+
+
+
+CALL searchUserByCarrera('Medicina');
+
+DELIMITER $$
+
+CREATE PROCEDURE searchUserByCarrera(CarreaToSearch VARCHAR(80)) 
+
+BEGIN
+
+SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_regreso FROM Usuarios USR 
+LEFT JOIN Sistema_prestamos SP ON USR.Id_cuenta = SP.Id_cuenta
+LEFT JOIN Catalogo C on SP.Isbn = C.Isbn WHERE USR.Carrera = CarreaToSearch;
+
+END $$
+
+DELIMITER ;
+
+    // Busca Usarios por nombre del libro prestado
+
+CALL searchUserByNombreLib('EL Capitan')
+
+DELIMITER $$
+
+CREATE PROCEDURE searchUserByNombreLib(NombreLibToSearch VARCHAR(80)) 
+
+BEGIN
+
+SELECT USR.Id_cuenta, Nombre, Ap_pat, C.Nombre_lb, SP.Fecha_solicitud, SP.Fecha_regreso FROM Usuarios USR 
+LEFT JOIN Sistema_prestamos SP ON USR.Id_cuenta = SP.Id_cuenta
+LEFT JOIN Catalogo C on SP.Isbn = C.Isbn WHERE C.Nombre_lb = NombreLibToSearch;
+
+END $$
+
+DELIMITER ;
+
+
+    // Agrega un usario nuevo a la tabla
+CALL addNewUser(FALSE, 'Maria', 'Solis', NULL, NULL, NULL, 'maria@yahoo.com', 'male', '1993/01/03');
+
+DELIMITER $$
+
+CREATE PROCEDURE addNewUser(User_type__new boolean, Nombre_new VARCHAR(100), Ap_pat_new VARCHAR(100), Ap_mat_new VARCHAR(100), 
+Carrera_new VARCHAR(100), Semestre_new INT, Correo_new VARCHAR(100), Password_new VARCHAR(100), F_nacimiento_new DATE) 
+
+BEGIN
+
+INSERT INTO Usuarios(User_type, Nombre, Ap_pat, Ap_mat, Carrera, Semestre, Correo,  Password, F_nacimiento) VALUES(User_type__new, Nombre_new, Ap_pat_new, Ap_mat_new, Carrera_new, Semestre_new, Correo_new, AES_ENCRYPT(Password_new, 'AES'), F_nacimiento_new);
+
+END $$
+
+DELIMITER ;
+
+
+
+
+///// FUNCNIOES LIBROS
+
+    // Funcion para obtener todos los libros
+CALL getAllLibros();
+
+DELIMITER $$
+
+CREATE PROCEDURE getAllLibros() 
+
+BEGIN 
+
+SELECT * FROM Catalogo;
+
+END $$
+
+DELIMITER ;
+
+
+
+
+        // Funcion para obtenr libros por ISBN
+
+CALL getLibroByIsbn(4);
+
+DELIMITER $$
+
+CREATE PROCEDURE getLibroByIsbn(searchByISBN INT) 
+
+BEGIN 
+
+SELECT * FROM Catalogo WHERE Isbn = searchByISBN;
+
+END $$
+
+DELIMITER ;
+
+
+
+
+    // Funcion para obtenr libros por nombre
+
+CALL getLibroByName('It');
+
+DELIMITER $$
+
+CREATE PROCEDURE getLibroByName(searchLibroByNombre VARCHAR(100)) 
+
+BEGIN 
+
+SELECT * FROM Catalogo WHERE Nombre_lb = searchLibroByNombre;
+
+END $$
+
+DELIMITER ;
+
+
+    // Funcion para obtenr libros por Editorial
+
+CALL getLibroByEditorial('LibrosLib');
+
+DELIMITER $$
+
+CREATE PROCEDURE getLibroByEditorial(searchLibroByEditorial VARCHAR(100)) 
+
+BEGIN 
+
+SELECT * FROM Catalogo WHERE Editorial = searchLibroByEditorial;
+
+END $$
+
+DELIMITER ;
+
+
+
+
+    // Funcion para obtenr libros por Numero de Ejemplares
+
+CALL getLibroByNumeroEjemplares(3);
+
+DELIMITER $$
+
+CREATE PROCEDURE getLibroByNumeroEjemplares(searchByNumeroEjem INT) 
+
+BEGIN 
+
+SELECT * FROM Catalogo WHERE Num_ejemplares = searchByNumeroEjem;
+
+END $$
+
+DELIMITER ;
+
+
+
+////// PRESTAMOS 
+
+CALL getLibrosPrestados(1);
+
+DELIMITER $$
+
+CREATE PROCEDURE getLibrosPrestados(searchByUserId INT) 
+
+BEGIN 
+
+SELECT SP.Id_prestamo, C.Isbn, C.Nombre_lb, C.Editorial, SP.Fecha_solicitud, SP.Fecha_regreso, CAST( NOW() AS Date ) AS FECHA_ACTUAL FROM Usuarios USR 
+LEFT JOIN Sistema_prestamos SP ON USR.Id_cuenta = SP.Id_cuenta
+LEFT JOIN Catalogo C on SP.Isbn = C.Isbn WHERE USR.Id_cuenta = searchByUserId AND SP.Devuelto = FALSE;
+
+END $$
+
+DELIMITER ;
+
+
+CALL regresarLibro(10, 18, 5);
+
+DELIMITER $$
+
+CREATE PROCEDURE regresarLibro(searchByIsbn INT, seachByUserId INT, searchByIdPrestamo INT) 
+
+BEGIN 
+
+UPDATE Catalogo SET Num_ejemplares = Num_ejemplares + 1 WHERE Isbn = searchByISBN;
+UPDATE Sistema_prestamos set Devuelto = TRUE WHERE Id_prestamo = searchByIdPrestamo;
+INSERT INTO Sistema_devoluciones(Id_prestamo, Id_cuenta, Isbn, Fecha_devolucion) VALUES(searchByIdPrestamo, seachByUserId, searchByIsbn, NOW());
+
+END $$
+
+DELIMITER ;
+
+UPDATE Sistema_prestamos SET Fecha_regreso = '2021/11/12' WHERE Id_prestamo=8;
+
+10

@@ -23,7 +23,7 @@ typedef enum{
     MENU_PRINCIPAL,
     EDIT_USERS,
     RENTA_LIBROS,
-    PRESATAMOS,
+    DEVOLUCIONES,
     UPDATE,
     SALIR,
     SECUNDARY_WINDOW,
@@ -34,6 +34,7 @@ typedef enum{
 
     USERS, 
     BOOKS,
+    RENTAS
 
 }UPDATES;
 
@@ -50,4 +51,5 @@ ERROR_CODE windowMenuPrincipal(Library library);
 ERROR_CODE getNextWindow(Library library, WINDOWS nextWindow);
 ERROR_CODE editUsersWindow(Library library);
 ERROR_CODE rentarLibro(Library library);
+ERROR_CODE devolucionesWindow(Library library);
 #endif

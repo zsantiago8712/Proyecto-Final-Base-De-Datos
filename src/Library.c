@@ -3,7 +3,7 @@
 
 static ERRORS_ENTRY validateLogin(GtkButton *boton, gpointer userData);
 static ERROR_CODE dialogWarning(int8_t error);
-static ERRORS_ENTRY validateEmail(char* correo);
+static ERRORS_ENTRY validateEmail(const char* correo);
 static ERROR_CODE validateEmptyFileds(const char* strintToValiidate);
 static gboolean delete_event_handler(GtkWidget *widget, GdkEvent *event, gpointer userData);
 static void cerrar(GtkWidget *widget, gpointer userData);
@@ -39,6 +39,12 @@ static void changeWindowFromSubMenuRL(GtkButton *boton, gpointer userData);
 static void changeWindowFromSubMenuMP(GtkButton *boton, gpointer userData);
 static void changeWindowFromSubMenuQT(GtkButton *boton, gpointer userData);
 static void changeWindowFromSubMenuAU(GtkButton *boton, gpointer userData);
+static void init_list_libros_rentados(GtkWidget *list);
+static void add_to_list_libros_rentados(GtkWidget *list, gchar **str);
+static void on_changedDevolucion(GtkWidget *widget, gpointer label);
+static ERROR_CODE devolucionAction(GtkButton *boton, gpointer userData);
+static ERROR_CODE validDateDevolucion(const char* dateLimit, const char* dateDevolucion);
+static char* getMonthDayFromDate(const char* date, uint typeDateIsMonth);
 
 
 struct _Library{
@@ -84,6 +90,7 @@ Library initLibrary(void){
     newLibrary->ventanas[1] = &windowMenuPrincipal;
     newLibrary->ventanas[2] = &editUsersWindow;
     newLibrary->ventanas[3] = &rentarLibro;
+    newLibrary->ventanas[4] = &devolucionesWindow;
     newLibrary->user = initUser();
     newLibrary->dataBase = initDataBase();
     newLibrary->data = initData();
@@ -141,6 +148,7 @@ ERROR_CODE windowLoggin(Library library){
     gtk_window_set_default_size(GTK_WINDOW(library->window), 400, 300);
     gtk_entry_set_max_length(GTK_ENTRY(library->password), 16);
     gtk_entry_set_visibility(GTK_ENTRY(library->password), FALSE);
+    gtk_window_set_position(GTK_WINDOW(library->window), GTK_WIN_POS_CENTER_ALWAYS);
 
 
     g_signal_connect(G_OBJECT(library->window), "delete_event", G_CALLBACK(delete_event_handler), library);
@@ -195,11 +203,13 @@ ERROR_CODE windowMenuPrincipal(Library library){
     
     gtk_window_set_default_size(GTK_WINDOW(library->window), 200, 200);
     gtk_window_set_title(GTK_WINDOW(library->window), "LIBRERIA JSS");
+    gtk_window_set_position(GTK_WINDOW(library->window), GTK_WIN_POS_CENTER_ALWAYS);
     
     g_signal_connect(G_OBJECT(library->window), "delete_event", G_CALLBACK(delete_event_handler), library);
     g_signal_connect(G_OBJECT(library->window), "destroy", G_CALLBACK(cerrar), library);
     g_signal_connect(G_OBJECT(botonSalir), "clicked", G_CALLBACK(cerrar), library);
     g_signal_connect(G_OBJECT(botonAdquirirLib), "clicked", G_CALLBACK(changeWindow), library);
+    g_signal_connect(G_OBJECT(botonPrestamosLib), "clicked", G_CALLBACK(changeWindow), library);
     
     
 
@@ -289,6 +299,7 @@ ERROR_CODE editUsersWindow(Library library){
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
     gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(sw), GTK_SHADOW_ETCHED_IN);
     gtk_menu_item_right_justify(GTK_MENU_ITEM(ayudaLabel));
+    gtk_window_set_position(GTK_WINDOW(library->window), GTK_WIN_POS_CENTER_ALWAYS);
 
 
     g_signal_connect(G_OBJECT(library->window), "delete_event", G_CALLBACK(delete_event_handler), library);
@@ -337,6 +348,99 @@ ERROR_CODE editUsersWindow(Library library){
 }
 
 
+
+ERROR_CODE devolucionesWindow(Library library){
+
+    GtkWidget *vbox, *hbox, *hbox2, *botonDevolver, *sw,
+    *menuBar, *menuBarMenuPrincipal, *menuBarRentarLibro, *menuBarSalir, *opciones, *opcionesLabel, *ayudaLabel, *ayudaMenu, *acercaDeLabel;
+
+    GtkTreeSelection *selection; 
+  
+
+    getAllLibrosRentados(library->dataBase, library->data, library->user);
+
+    
+
+    library->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    library->list = gtk_tree_view_new();
+    vbox = gtk_vbox_new(FALSE, 0);
+    hbox = gtk_hbox_new(FALSE, 0);
+    hbox2 = gtk_hbox_new(FALSE, 0);
+    selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(library->list));
+    library->searchEntry = gtk_entry_new();
+    botonDevolver = gtk_button_new_with_mnemonic("DEVOLVER");
+    library->nextWindow = SALIR;
+    sw = gtk_scrolled_window_new(NULL, NULL);
+    opcionesLabel = gtk_menu_item_new_with_label("Menu");
+    opciones = gtk_menu_new();
+    menuBar = gtk_menu_bar_new();
+    menuBarRentarLibro = gtk_image_menu_item_new_with_label("Rentar Libro");
+    menuBarMenuPrincipal = gtk_image_menu_item_new_from_stock(GTK_STOCK_HOME, NULL);
+    menuBarSalir =  gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT, NULL);
+    ayudaLabel = gtk_menu_item_new_with_label("Ayuda");
+    ayudaMenu = gtk_menu_new(); 
+    acercaDeLabel = gtk_menu_item_new_with_label("Acerca de");
+
+    
+
+
+    init_list_libros_rentados(library->list);
+    for(uint8_t i = 0; i < getDataRows(library->data); i++)
+        add_to_list_libros_rentados(library->list, getRowDataBd(library->data, i));
+
+
+    gtk_window_set_title(GTK_WINDOW(library->window), "LIBRERIA JSS");
+    gtk_window_set_position(GTK_WINDOW(library->window), GTK_WIN_POS_CENTER);
+    gtk_container_set_border_width(GTK_CONTAINER(library->window), 10);
+    gtk_window_set_default_size(GTK_WINDOW(library->window), 300, 450);
+    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(library->list), TRUE);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(sw), GTK_SHADOW_ETCHED_IN);
+    gtk_menu_item_right_justify(GTK_MENU_ITEM(ayudaLabel));
+    gtk_window_set_position(GTK_WINDOW(library->window), GTK_WIN_POS_CENTER_ALWAYS);
+
+
+    g_signal_connect(G_OBJECT(library->window), "delete_event", G_CALLBACK(delete_event_handler), library);
+    g_signal_connect(G_OBJECT(library->window), "destroy", G_CALLBACK(cerrar), library);
+    g_signal_connect(G_OBJECT(botonDevolver), "clicked", G_CALLBACK(devolucionAction), library);
+    g_signal_connect(selection, "changed", G_CALLBACK(on_changedDevolucion), library);
+    g_signal_connect(G_OBJECT(acercaDeLabel), "activate", G_CALLBACK(ventanaAcercaDe), library);
+    g_signal_connect(G_OBJECT(menuBarSalir), "activate", G_CALLBACK(changeWindowFromSubMenuQT), library);
+    g_signal_connect(G_OBJECT(menuBarMenuPrincipal), "activate", G_CALLBACK(changeWindowFromSubMenuMP), library);
+    g_signal_connect(G_OBJECT(menuBarRentarLibro), "activate", G_CALLBACK(changeWindowFromSubMenuRL), library);
+
+
+
+
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarMenuPrincipal);
+    gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarRentarLibro);
+    gtk_menu_shell_append(GTK_MENU_SHELL(opciones), menuBarSalir);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(opcionesLabel), opciones);
+    gtk_menu_bar_append(GTK_MENU_BAR(menuBar), opcionesLabel);
+    gtk_menu_shell_append(GTK_MENU_SHELL(ayudaMenu), acercaDeLabel);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(ayudaLabel), ayudaMenu);
+    gtk_menu_bar_append(GTK_MENU_BAR(menuBar), ayudaLabel);
+    
+    
+    
+    gtk_container_add(GTK_CONTAINER(sw), library->list);
+
+    gtk_box_pack_start(GTK_BOX(hbox2), menuBar, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), sw, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox), botonDevolver, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
+    gtk_container_add(GTK_CONTAINER(library->window), vbox);
+
+    
+    gtk_widget_show_all(library->window);
+
+    return ERROR_OK;
+}
+
+
+
 ERROR_CODE rentarLibro(Library library){
     
 
@@ -359,7 +463,6 @@ ERROR_CODE rentarLibro(Library library){
     hbox2 = gtk_hbox_new(FALSE, 0);
     label = gtk_label_new("SEARCH:");
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(library->list));
-    library->searchEntry = gtk_entry_new();
     library->nextWindow = SALIR;
     sw = gtk_scrolled_window_new(NULL, NULL);
     opcionesLabel = gtk_menu_item_new_with_label("Menu");
@@ -386,6 +489,8 @@ ERROR_CODE rentarLibro(Library library){
     gtk_menu_shell_append(GTK_MENU_SHELL(ayudaMenu), acercaDeLabel);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(ayudaLabel), ayudaMenu);
     gtk_menu_bar_append(GTK_MENU_BAR(menuBar), ayudaLabel);
+
+    gtk_window_set_position(GTK_WINDOW(library->window), GTK_WIN_POS_CENTER_ALWAYS);
 
 
 
@@ -420,7 +525,6 @@ ERROR_CODE rentarLibro(Library library){
     gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), sw, TRUE, TRUE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(hbox), library->searchEntry, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), botonBuscar, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox), botonRentar, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
@@ -499,11 +603,11 @@ static ERRORS_ENTRY validateLogin(GtkButton *boton, gpointer userData){
 static ERROR_CODE changeWindow(GtkButton *boton, gpointer userData){
 
     Library library = (Library) userData;
-    
+
     if(strcmp("Rentar Libros", gtk_button_get_label(boton)) == 0)
         getNextWindow(library, RENTA_LIBROS);
-    else if(strcmp("Libors Prestados", gtk_button_get_label(boton)) == 0)
-        getNextWindow(library, PRESATAMOS);
+    else if(strcmp("Libros Prestados", gtk_button_get_label(boton)) == 0)
+        getNextWindow(library, DEVOLUCIONES);
     else if(strcmp("Agregar Usuarios", gtk_button_get_label(boton)) == 0)
         getNextWindow(library, EDIT_USERS);
 
@@ -520,7 +624,8 @@ static ERROR_CODE dialogWarning(int8_t error){
     gint respuesta;
     const char* errorMessage[] = {"SE INGRESO MAL EL CORREO O LA CONTRASEÑA\n", "SE DEJO ALGUN CAMPO VACIO\n", "EL CORREO INGRESADO NO ES VALIDO", "NO SE ENCONTRO NINGUN USURIO", 
     "NO SE ENCONTRO NINGUN LIBRO", "SE DEJO VACIO EL CAMPO DE NOMBRE", "SE DEJO VACIO EL CAMPO DE APELLIDO PATERNO", "SE DEJO VACIO EL CAMPO DE CORREO", "SE DEJO VACIO EL CAMPO DE PASSWORD", 
-    "SE DEJO VACIO EL CAMPO DE FECHA DE NACIMIENTO", "ALGO SALIO MAL AL INTENAT AGREGAR EL USUARIO", "NO HAY NINGUN EJEMPLAR DISPONIBLE\n", "ALGO SALIO MAL AL REALIZAR LA RENTA\n"};
+    "SE DEJO VACIO EL CAMPO DE FECHA DE NACIMIENTO", "ALGO SALIO MAL AL INTENAT AGREGAR EL USUARIO", "NO HAY NINGUN EJEMPLAR DISPONIBLE\n", "ALGO SALIO MAL AL REALIZAR LA RENTA!!\n", "NO SE SELECCIONO NINGUN LIBRO!!", 
+    "ALGO SALIO MAL EN LA DEVOLUCINO!!", "EL LIBRO ESTA SIENDO DEVULETO TARDE, SE LE COBRARA UNA COMISION EXTRA!!"};
 
     windowError = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     errorDialog = gtk_message_dialog_new(GTK_WINDOW(windowError), GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, errorMessage[error], NULL);
@@ -934,7 +1039,7 @@ static ERROR_CODE validateEmptyFileds(const char* strintToValiidate){
 
 
 
-static ERRORS_ENTRY validateEmail(char* correo){
+static ERRORS_ENTRY validateEmail(const char* correo){
 
     const char* validsEmails[7] = {"@gmail.com", "@gmail.com.mx", "@yahoo.com", "@yahoo.com.mx", "@icloud.com", "@outlook.com", "@outlook.com.mx"};
     char correoToCheck[BUFSIZ];
@@ -1053,42 +1158,27 @@ static void init_list_users(GtkWidget *list) {
 
     
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Type_User", renderer, "text", 1, NULL);
+    column = gtk_tree_view_column_new_with_attributes("Nombre", renderer, "text", 1, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
 
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Nombre", renderer, "text", 2, NULL);
+    column = gtk_tree_view_column_new_with_attributes("Apellido Pat", renderer, "text", 2, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
 
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Apellido Pat", renderer, "text", 3, NULL);
+    column = gtk_tree_view_column_new_with_attributes("Nombre Libro", renderer, "text", 3, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
 
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Apellido Mat", renderer, "text", 4, NULL);
+    column = gtk_tree_view_column_new_with_attributes("Fecha Solicitu", renderer, "text", 4, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
 
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Carrera", renderer, "text", 5, NULL);
+    column = gtk_tree_view_column_new_with_attributes("Fecha Devolucion", renderer, "text", 5, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
 
-    renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Semestre", renderer, "text", 6, NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
     
-    renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Correo", renderer, "text", 7, NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
-
-
-    renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Fech Nacimiento", renderer, "text", 8, NULL);
-
-    renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Password", renderer, "text", 9, NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
-
-    store = gtk_list_store_new(10, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    store = gtk_list_store_new(6, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 
     gtk_tree_view_set_model(GTK_TREE_VIEW(list), GTK_TREE_MODEL(store));
 
@@ -1106,16 +1196,13 @@ static void add_to_list_users(GtkWidget *list, gchar **str) {
 
     gtk_list_store_append(store, &iter);
 
-    gtk_list_store_set(store, &iter, 0, str[0],
+    gtk_list_store_set(store, &iter, 
+                    0, str[0],
                     1, str[1],
                     2, str[2],
                     3, str[3],
                     4, str[4],
                     5, str[5],
-                    6, str[6],
-                    7, str[7],
-                    8, str[8],
-                    9, str[9],
                     -1);
 }
 
@@ -1168,6 +1255,72 @@ static void add_to_list_libros(GtkWidget *list, gchar **str) {
                     -1);
 }
 
+static void init_list_libros_rentados(GtkWidget *list) {
+
+    GtkCellRenderer *renderer;
+    GtkTreeViewColumn *column;
+    GtkListStore *store;
+
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Id Prestamo", renderer, "text", 0, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+    
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Isbn", renderer, "text", 1, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Nombre Libro", renderer, "text", 2, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Editorial", renderer, "text", 3, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Fecha Solicitud", renderer, "text", 4, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Fecha Limite Devolucion", renderer, "text", 5, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Fecha Actual", renderer, "text", 6, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+    store = gtk_list_store_new(7, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+
+    gtk_tree_view_set_model(GTK_TREE_VIEW(list), GTK_TREE_MODEL(store));
+
+    g_object_unref(store);
+}
+
+
+static void add_to_list_libros_rentados(GtkWidget *list, gchar **str) {
+    
+    GtkListStore *store;
+    GtkTreeIter iter;
+
+    store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(list)));
+
+    gtk_list_store_append(store, &iter);
+
+    gtk_list_store_set(store, &iter, 
+                    0, str[0],
+                    1, str[1],
+                    2, str[2],
+                    3, str[3],
+                    4, str[4],
+                    5, str[5],
+                    6, str[6],
+                    -1);
+}
+
+
+
 static void on_changed(GtkWidget *widget, gpointer label) {
     
   GtkTreeIter iter;
@@ -1210,6 +1363,42 @@ static void on_changedRentar(GtkWidget *widget, gpointer label) {
 
   
 }
+
+static void on_changedDevolucion(GtkWidget *widget, gpointer label) {
+    
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+    gchar *idPrestamo, *isbn, *fechaLimDev, *fechaActual;
+
+    Library library = (Library) label;
+
+    
+
+    if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(widget), &model, &iter)) {
+
+        
+        gtk_tree_model_get(model, &iter, 0, &idPrestamo,  -1);
+        gtk_tree_model_get(model, &iter, 1, &isbn,  -1);
+        gtk_tree_model_get(model, &iter, 5, &fechaLimDev,  -1);
+        gtk_tree_model_get(model, &iter, 6, &fechaActual,  -1);
+
+
+        setArgumentInsert(library->data, isbn, 0);
+        setArgumentInsert(library->data, idPrestamo, 1);
+        setArgumentInsert(library->data, fechaLimDev, 2);
+        setArgumentInsert(library->data, fechaActual, 3);
+
+
+        g_free(isbn);
+        g_free(idPrestamo);
+        g_free(fechaActual);
+        g_free(fechaLimDev);
+
+    }
+
+  
+}
+
 
 
 static ERROR_CODE searchUserAction(GtkButton *boton, gpointer userData){
@@ -1260,8 +1449,12 @@ static ERROR_CODE rentarLibroAction(GtkButton *boton, gpointer userData){
     }
     
 
-    if(addRenta(library->dataBase, library->data, library->user) != ERROR_OK)
+    if(addRenta(library->dataBase, library->data, library->user) != ERROR_OK){
         dialogWarning(RENTA_ERROR);
+        clearDataInsert(library->data);
+        return STOCK_ERROR;
+    }
+       
 
     clearData(library->data);
     getAllLibros(library->dataBase, library->data);
@@ -1271,6 +1464,34 @@ static ERROR_CODE rentarLibroAction(GtkButton *boton, gpointer userData){
     return ERROR_OK;
 }
 
+
+static ERROR_CODE devolucionAction(GtkButton *boton, gpointer userData){
+
+    Library library = (Library) userData;
+
+    if(!getArgumentInsert(library->data, 0)){
+        dialogWarning(BOOK_NO_SELECTED);
+        clearDataInsert(library->data);
+        return EMPTY_STRING;
+    }
+
+    if(devoluciones(library->dataBase, library->data, library->user) != ERROR_OK){
+        dialogWarning(DEVOLUCINO_ERROR);
+        clearDataInsert(library->data);
+        return EMPTY_STRING;
+    }
+
+    if(validDateDevolucion(getArgumentInsert(library->data, 2), getArgumentInsert(library->data, 3)) == LATE_DEVOLUCION)
+        dialogWarning(DEVOLUCION_LATE);
+    
+
+    clearData(library->data);
+    getAllLibrosRentados(library->dataBase, library->data, library->user);
+    updateList(library, RENTAS);
+    dialogSucces(2);
+    return ERROR_OK;
+
+}
 
 static ERROR_CODE updateList(Library library, UPDATES typeUpdate){
 
@@ -1301,6 +1522,9 @@ static ERROR_CODE updateList(Library library, UPDATES typeUpdate){
 
         for(uint8_t i = 0; i < getDataRows(library->data); i++)
             add_to_list_libros(library->list, getRowDataBd(library->data, i));
+    }else if(typeUpdate == RENTAS){
+        for(uint8_t i = 0; i < getDataRows(library->data); i++)
+            add_to_list_libros_rentados(library->list, getRowDataBd(library->data, i));
     }
 
     
@@ -1365,4 +1589,57 @@ static void changeWindowFromSubMenuAU(GtkButton *boton, gpointer userData){
     clearData(library->data);
     clearDataInsert(library->data);
     getNextWindow(library, EDIT_USERS);
+}
+
+static ERROR_CODE validDateDevolucion(const char* dateLimit, const char* dateDevolucion){
+
+    uint8_t yearDateLimit, yearDateDevolucion, monthDateLimit, monthDateDevolucion, dayDateLimit, dayDateDevolucion;
+    
+
+    yearDateLimit = atoi(dateLimit + 4);
+    yearDateDevolucion = atoi(dateDevolucion + 4);
+
+
+
+    if(yearDateLimit < yearDateDevolucion)
+        return LATE_DEVOLUCION;
+
+    monthDateLimit = atoi(getMonthDayFromDate(dateLimit, TRUE));
+    monthDateDevolucion = atoi(getMonthDayFromDate(dateDevolucion, TRUE));
+
+    if(monthDateLimit < monthDateDevolucion)
+        return LATE_DEVOLUCION;
+    
+    dayDateLimit = atoi(getMonthDayFromDate(dateLimit, FALSE));
+    dayDateDevolucion = atoi(getMonthDayFromDate(dateDevolucion, FALSE));
+
+    if(dayDateLimit < dayDateDevolucion)
+        return LATE_DEVOLUCION;
+
+    
+    return ERROR_OK;
+}
+
+
+static char* getMonthDayFromDate(const char* date, uint typeDateIsMonth){
+
+    char newDate[10];
+
+    if(typeDateIsMonth){
+        for(uint i = 0; i < 7; i++){
+
+            if(i >= 5)
+                newDate[i - 5] = date[i];
+        }
+    }
+    else{
+        for(uint i = 0; i <= 9; i++){
+
+            if(i >= 8)
+                newDate[i - 8] = date[i];
+        }
+    }
+    
+    puts(newDate);
+    return strdup(newDate);
 }

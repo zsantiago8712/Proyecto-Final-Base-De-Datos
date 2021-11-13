@@ -103,13 +103,12 @@ ERROR_CODE setPassword(User user, const char* newPassword){
 
 ERROR_CODE setId(User user, const char* id){
 
-    char *prt;
     if(!user){
         fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
         return EMPTY_STRUCT;
     }
 
-    user->id = strtol(id, &prt, 5);    
+    user->id = atoi(id); 
     return ERROR_OK;
 }
 
@@ -176,13 +175,13 @@ ERROR_CODE setCarrera(User user, const char* newCarrera){
 
 ERROR_CODE setSemestre(User user, const char* semestre){
 
-    char *prt;
+    
     if(!user){
         fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
         return EMPTY_STRUCT;
     }
 
-    user->semestre = strtol(semestre, &prt, 5);  
+    user->semestre = atoi(semestre);  
 
     return ERROR_OK;
 }
@@ -190,13 +189,12 @@ ERROR_CODE setSemestre(User user, const char* semestre){
 
 ERROR_CODE setTypeUser(User user, const char* typeUser){
 
-    char *prt;
     if(!user){
         fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
         return EMPTY_STRUCT;
     }
 
-    if(strtol(typeUser, &prt, 5))
+    if(atoi(typeUser))
         user->typeUser = ADMIN;
     else
         user->typeUser = CLIENT;
