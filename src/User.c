@@ -81,7 +81,7 @@ ERROR_CODE setCorreo(User user, const char* newCorreo){
     }
 
     user->correo = calloc(strlen(newCorreo), sizeof(char));
-    strcpy(user->correo, newCorreo);
+    user->correo = strdup(newCorreo);
     
     return ERROR_OK;
 }
@@ -95,20 +95,20 @@ ERROR_CODE setPassword(User user, const char* newPassword){
     }
 
     user->password = calloc(strlen(newPassword), sizeof(char));
-    strcpy(user->password, newPassword);
+    user->password = strdup(newPassword);
+    
     
     return ERROR_OK;
 }
 
 ERROR_CODE setId(User user, const char* id){
 
-    char *prt;
     if(!user){
         fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
         return EMPTY_STRUCT;
     }
 
-    user->id = strtol(id, &prt, 5);    
+    user->id = atoi(id); 
     return ERROR_OK;
 }
 
@@ -122,7 +122,8 @@ ERROR_CODE setNombre(User user, const char* newNombre){
     }
 
     user->nombre = calloc(strlen(newNombre), sizeof(char));
-    strcpy(user->nombre, newNombre);
+    user->nombre = strdup(newNombre);
+    
     
     return ERROR_OK;
 }
@@ -136,7 +137,8 @@ ERROR_CODE setApellidoPaterno(User user, const char* newApellidoPaterno){
     }
 
     user->apellido_paterno = calloc(strlen(newApellidoPaterno), sizeof(char));
-    strcpy(user->apellido_paterno, newApellidoPaterno);
+    user->apellido_paterno = strdup(newApellidoPaterno);
+    
     
     return ERROR_OK;
 }
@@ -151,7 +153,7 @@ ERROR_CODE setApellidoMaterno(User user, const char* newApellidoMaterno){
     }
 
     user->apellido_materno = calloc(strlen(newApellidoMaterno), sizeof(char));
-    strcpy(user->apellido_materno, newApellidoMaterno);
+    user->apellido_materno = calloc(strlen(newApellidoMaterno), sizeof(char));
     
     return ERROR_OK;
 }
@@ -165,7 +167,7 @@ ERROR_CODE setCarrera(User user, const char* newCarrera){
     }
 
     user->carrera = calloc(strlen(newCarrera), sizeof(char));
-    strcpy(user->carrera, newCarrera);
+    user->carrera = strdup(newCarrera);
     
     return ERROR_OK;
 }
@@ -173,13 +175,13 @@ ERROR_CODE setCarrera(User user, const char* newCarrera){
 
 ERROR_CODE setSemestre(User user, const char* semestre){
 
-    char *prt;
+    
     if(!user){
         fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
         return EMPTY_STRUCT;
     }
 
-    user->semestre = strtol(semestre, &prt, 5);  
+    user->semestre = atoi(semestre);  
 
     return ERROR_OK;
 }
@@ -187,13 +189,12 @@ ERROR_CODE setSemestre(User user, const char* semestre){
 
 ERROR_CODE setTypeUser(User user, const char* typeUser){
 
-    char *prt;
     if(!user){
         fprintf(stderr, "ERROR: %s %d %d", __FILE__, __LINE__, EMPTY_STRUCT);
         return EMPTY_STRUCT;
     }
 
-    if(strtol(typeUser, &prt, 5))
+    if(atoi(typeUser))
         user->typeUser = ADMIN;
     else
         user->typeUser = CLIENT;
@@ -211,7 +212,7 @@ ERROR_CODE setFechaNacimiento(User user, const char* newFechaNacimiento){
     }
 
     user->fecha_nacimiento = calloc(strlen(newFechaNacimiento), sizeof(char));
-    strcpy(user->fecha_nacimiento, newFechaNacimiento);
+    user->fecha_nacimiento = strdup(newFechaNacimiento);
     
     return ERROR_OK;
 }

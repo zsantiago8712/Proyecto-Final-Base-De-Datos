@@ -1,5 +1,5 @@
 CC = gcc
-CXXFLAGS = -std=c11 -Wall -g 
+CXXFLAGS = -std=c11 -Wall -g -D_GNU_SOURCE
 LDFLAGS = `mysql_config --cflags --libs `
 INCLUDES = -I/usr/include/mysql
 

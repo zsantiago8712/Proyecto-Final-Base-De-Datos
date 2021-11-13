@@ -21,11 +21,22 @@ typedef enum{
 
     LOGIN,
     MENU_PRINCIPAL,
+    EDIT_USERS,
     RENTA_LIBROS,
-    AGREGAR_LIBROS_USERS,
-    SALIR
+    DEVOLUCIONES,
+    UPDATE,
+    SALIR,
+    SECUNDARY_WINDOW,
 }WINDOWS;
 
+
+typedef enum{
+
+    USERS, 
+    BOOKS,
+    RENTAS
+
+}UPDATES;
 
 
 // Constructor
@@ -38,5 +49,7 @@ Library freeLibrary(Library library);
 ERROR_CODE windowLoggin(Library library);
 ERROR_CODE windowMenuPrincipal(Library library);
 ERROR_CODE getNextWindow(Library library, WINDOWS nextWindow);
-
+ERROR_CODE editUsersWindow(Library library);
+ERROR_CODE rentarLibro(Library library);
+ERROR_CODE devolucionesWindow(Library library);
 #endif
